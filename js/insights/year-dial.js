@@ -8,6 +8,7 @@
 //     clicking a year.
 //   - "Magnetic": when you let go, the dial coasts a little with your speed
 //     and then pulls the nearest year into the centre, under the red marker.
+//   - The arc itself isn't drawn: the years' positions trace it.
 //   - The centre year is big; years further along the arc are smaller,
 //     tilted with the curve, and fade out.
 //
@@ -27,7 +28,7 @@ function YearDial(root, years, initial, onChange) {
   let STEP = (16 * Math.PI) / 180;            // angle between two years on the arc (set in place())
   const MARKER_GAP = 46;                      // px from the arc to the tip of the red marker (keeps it clear of the year)
 
-  // the dotted arc and the red marker are one SVG behind the year labels
+  // the red marker is an SVG behind the year labels
   const arc = document.createElementNS(NS, 'svg');
   arc.setAttribute('class', 'dial-arc');
   arc.setAttribute('aria-hidden', 'true');
@@ -52,9 +53,7 @@ function YearDial(root, years, initial, onChange) {
     // a flat arc: 16° between years, but never so close that neighbours touch on a narrow screen
     STEP = Math.max((16 * Math.PI) / 180, 140 / R);
     arc.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    const end = Math.min(1.1, STEP * 2.6);                    // the dotted arc reaches a bit past two years each side
     arc.innerHTML =
-      `<path d="M${cx - R * Math.sin(end)},${cy - R * Math.cos(end)} A${R} ${R} 0 0 1 ${cx + R * Math.sin(end)},${cy - R * Math.cos(end)}" class="dial-line"/>` +
       `<path d="M${cx - 10},${cy - R - MARKER_GAP - 14} L${cx + 10},${cy - R - MARKER_GAP - 14} L${cx},${cy - R - MARKER_GAP} Z" class="dial-marker"/>`;
     labels.forEach((el, i) => {
       const a = (i - pos) * STEP, d = Math.abs(i - pos);

@@ -93,10 +93,10 @@
     });
   }
 
-  // Small label over a waypoint: month and flights.
+  // Small label over a waypoint: the month's flights.
   function showTip(m, g) {
     const box = svg.parentElement.getBoundingClientRect(), r = g.querySelector('.tri').getBoundingClientRect();
-    tip.innerHTML = `<b>${FIRCastInsights.monthName(m.month)}</b> · ${m.traffic.flights.toLocaleString('en')} flights${m.partial ? ' so far' : ''}`;
+    tip.textContent = `${m.traffic.flights.toLocaleString('en')} flights${m.partial ? ' so far' : ''}`;   // the month's name is already under the waypoint
     tip.style.left = `${r.left + r.width / 2 - box.left}px`;
     tip.style.top = `${r.top - box.top}px`;
     tip.hidden = false;
