@@ -1,0 +1,12 @@
+# Operating system clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor settings (each teammate keeps their own)
+.vscode/
+.idea/
+*.swp
+
+# In case anyone adds tooling later
+node_modules/
