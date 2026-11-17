@@ -1,6 +1,6 @@
 // =====================================================================
-// FIRCast · js/map/radar-background.js
-// Used on: map.html (the faint radar behind the page).
+// FIRCast · js/shared/radar-background.js
+// Used on: map.html, insights.html, insights-month.html (needs <canvas id="radar">).
 //
 // Range rings and bearing ticks are drawn once to an off-screen canvas, then
 // each frame copies them and adds the sweep (a fading 60° wedge drawn as thin
