@@ -133,14 +133,14 @@ h1 {
 
 /* ---- Map area and overlays ---- */
 .map-wrap { position: relative; border-radius: 16px; overflow: hidden; }
-#geo-map {
+.map-canvas {
   display: block; width: 100%;
   height: max(540px, calc(100vh - 250px));
   cursor: grab;
   touch-action: none;                    /* dragging is handled in JavaScript */
 }
-#geo-map.dragging { cursor: grabbing; }
-#geo-map.on-plane { cursor: pointer; }
+.map-canvas.dragging { cursor: grabbing; }
+.map-canvas.on-plane { cursor: pointer; }
 
 .overlay { position: absolute; z-index: 2; }
 /* flight level colour key (in the legend under the map) */
@@ -326,7 +326,7 @@ h1 {
 @media (max-width: 640px) {
   h1 { font-size: 36px; line-height: 40px; margin-bottom: 20px; }
   .map-card { padding: 12px; border-radius: 16px; }
-  #geo-map { height: 64vh; }
+  .map-canvas { height: 64vh; }
   .plane-panel {                         /* phones: panel becomes a bottom sheet */
     top: auto; bottom: 12px; left: 12px; right: 12px; width: auto;
     max-height: 72%;
@@ -343,4 +343,226 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .plane-panel, .btn, .nav-link, .seg button, .menu-btn svg, .chip, .switch, .switch::before, .skip, .hint, .pp-bar i { transition: none; }
   .menu-panel:not([hidden]) { animation: none; }
+}
+
+/* =====================================================================
+   Review mode (js/map/review.js)
+   The supervisor reviews each split / merge recommendation on two maps
+   side by side (now | proposed), reads why, then accepts or overrides.
+   ===================================================================== */
+
+/* "Review 2" button in the map header: navy pill with a small orange count. */
+.review-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 8px 0 16px;
+  border: 0; border-radius: 9999px; cursor: pointer;
+  background: var(--ink); color: var(--sweet-corn);
+  font: 700 14px/1 var(--font-ui);
+  transition: transform 300ms var(--ease);
+}
+.review-btn:hover { transform: translateY(-1px); }
+.review-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.review-btn[hidden] { display: none; }
+.review-count {
+  display: inline-grid; place-items: center;
+  min-width: 26px; height: 26px; padding: 0 6px; border-radius: 9999px;
+  background: var(--spicy-orange); color: var(--sweet-corn);
+  font-size: 13px;
+}
+
+/* While reviewing: no 2D/3D switch, no menu, no review button (review is 2D only). */
+.is-reviewing .seg, .is-reviewing .menu, .is-reviewing .review-btn { display: none; }
+
+/* Bar above the maps: "Recommendation 1 of 2 · Split S6 in 20 min" + Exit. */
+.review-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.review-bar[hidden] { display: none; }
+.review-step { font-size: 15px; line-height: 22px; font-weight: 600; }
+.review-step .of { color: var(--muted); font-weight: 500; margin-right: 8px; }
+/* Action tags: red tint for split, blue tint for merge. */
+.act {
+  display: inline-block; margin-right: 6px; padding: 2px 8px; border-radius: 6px;
+  font-size: 12px; line-height: 16px; font-weight: 700;
+}
+.act-split { background: rgba(221, 17, 10, 0.12); color: #A60D07; }
+.act-merge { background: rgba(132, 180, 230, 0.45); color: var(--ink); }
+.btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.btn-ghost:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
+button.btn { border: 0; cursor: pointer; font-family: var(--font-ui); }
+
+/* The map area: one pane normally; while reviewing, two framed panes side by side,
+   each with its own title bar, so "Before" and "After" read as two separate views. */
+.pane { position: relative; min-width: 0; }
+.pane[hidden] { display: none; }
+.pane-head { display: none; }
+.is-reviewing .map-wrap {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  overflow: visible; border-radius: 0;
+}
+.is-reviewing .pane {
+  display: flex; flex-direction: column;
+  border-radius: 18px; overflow: hidden;
+  background: var(--ink);                       /* navy frame: clearly not part of the cream card */
+  padding: 0 6px 6px;
+  box-shadow: 0 18px 36px -20px rgba(19, 35, 58, 0.7);
+}
+.is-reviewing .map-canvas { height: max(400px, calc(100vh - 470px)); border-radius: 12px; }
+.is-reviewing .pane-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 8px 9px; color: var(--sweet-corn);
+  font-size: 13px; line-height: 18px; font-weight: 600;
+}
+.pane-tag {
+  padding: 3px 10px; border-radius: 9999px;
+  background: var(--sweet-corn); color: var(--ink);
+  font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.pane-tag.is-after { background: var(--spicy-orange); color: var(--sweet-corn); }
+.pane-key { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 12px; }
+.pane-key i { display: inline-block; width: 26px; height: 0; border-top: 4px solid var(--spicy-orange); border-radius: 2px; }
+.pane-key .key-dashed { border-top-style: dashed; }
+
+/* Panel under the maps: the reason + forecast chart, then the decision. */
+.review-panel {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: end;
+}
+.review-panel[hidden] { display: none; }
+.why { display: grid; gap: 8px; }
+.why[hidden] { display: none; }
+.why-text { font-size: 15px; line-height: 22px; font-weight: 600; max-width: 62ch; }
+.why-chart { width: 100%; max-width: 640px; height: auto; display: block; }
+.why-chart text { font-family: var(--font-ui); font-size: 11px; font-weight: 600; fill: var(--muted); }
+.decide { display: grid; gap: 12px; justify-items: end; }
+.decide[hidden] { display: none; }
+.decide-buttons { display: flex; gap: 8px; }
+.decide-buttons[hidden] { display: none; }
+.override { display: grid; gap: 8px; width: min(440px, 100%); }
+.override[hidden] { display: none; }
+.override fieldset { border: 0; display: grid; gap: 8px; }
+.override legend { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.override .chips { grid-template-columns: 1fr 1fr; }
+.override .chip { height: auto; min-height: 34px; padding: 6px 12px; text-align: center; line-height: 1.25; }
+.note-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.override textarea {
+  width: 100%; resize: vertical; padding: 8px 12px;
+  border: 1.5px solid var(--line); border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6); color: var(--ink);
+  font: 500 14px/20px var(--font-ui);
+}
+.override textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.form-error { font-size: 13px; font-weight: 600; color: #A60D07; }
+.form-error[hidden] { display: none; }
+.override .decide-buttons { justify-content: flex-end; }
+
+/* End of review: list of decisions and the way back. */
+.review-done { grid-column: 1 / -1; display: grid; justify-items: center; gap: 8px; padding: 8px 0; }
+.review-done[hidden] { display: none; }
+.done-title { font: 800 22px/28px var(--font-display); font-variation-settings: var(--display-opsz); }
+.done-list { list-style: none; display: grid; gap: 4px; text-align: center; font-size: 14px; color: var(--muted); }
+.done-list b { color: var(--ink); }
+
+@media (max-width: 900px) {
+  .is-reviewing .map-wrap { grid-template-columns: 1fr; gap: 14px; }
+  .is-reviewing .map-canvas { height: 40vh; }
+  .review-panel { grid-template-columns: 1fr; }
+  .decide { justify-items: stretch; }
+  .decide-buttons { justify-content: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .review-btn { transition: none; }
+}
+
+/* =====================================================================
+   Forecast panel (js/map/forecast-panel.js)
+   Docked to the right of the map. It pushes the map narrower instead of
+   covering it, and hides with the "Forecast" button in the header.
+   ===================================================================== */
+.map-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.map-body.with-panel { grid-template-columns: minmax(0, 1fr) 360px; }
+.is-reviewing .map-body { display: block; }
+.is-reviewing .forecast-panel, .is-reviewing .forecast-btn { display: none; }
+
+/* "Forecast" toggle in the header: outlined when the panel is hidden, navy when shown. */
+.forecast-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 16px 0 14px;
+  border: 0; border-radius: 9999px; cursor: pointer;
+  background: transparent; color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  font: 700 14px/1 var(--font-ui);
+  transition: background-color 300ms var(--ease), color 300ms var(--ease), box-shadow 300ms var(--ease);
+}
+.forecast-btn:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.forecast-btn[aria-pressed="true"] { background: var(--ink); color: var(--sweet-corn); box-shadow: none; }
+.forecast-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.forecast-panel {
+  display: flex; flex-direction: column; gap: 14px;
+  min-width: 0; padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.forecast-panel[hidden] { display: none; }
+
+/* Status line: green dot when live, red when the model stopped answering. */
+.fp-status { display: flex; align-items: center; gap: 8px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--muted); }
+.fp-dot { width: 8px; height: 8px; border-radius: 50%; background: #8A97A8; flex-shrink: 0; }
+.fp-status.is-live .fp-dot { background: #2E8B57; box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.18); }
+.fp-status.is-down { color: #A60D07; }
+.fp-status.is-down .fp-dot { background: var(--spicy-orange); }
+
+/* Sector chips: the dot shows the worst zone the sector is heading for. */
+.fp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fp-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 12px 0 10px;
+  border: 0; border-radius: 9999px; cursor: pointer;
+  background: rgba(19, 35, 58, 0.07); color: var(--ink);
+  font: 700 13px/1 var(--font-ui);
+  transition: background-color 200ms var(--ease), color 200ms var(--ease);
+}
+.fp-chip i { width: 8px; height: 8px; border-radius: 50%; }
+.fp-chip:hover { background: rgba(19, 35, 58, 0.14); }
+.fp-chip[aria-checked="true"] { background: var(--ink); color: var(--sweet-corn); }
+.fp-chip[aria-checked="true"] i { box-shadow: 0 0 0 2px var(--sweet-corn); }
+.fp-chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* Chosen sector: big name and the action badge (opens review mode). */
+.fp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fp-name { font: 800 28px/32px var(--font-display); font-variation-settings: var(--display-opsz); letter-spacing: -0.02em; }
+.fp-action {
+  border: 0; cursor: pointer; border-radius: 9999px;
+  padding: 6px 12px; font: 700 13px/18px var(--font-ui);
+}
+.fp-action[hidden] { display: none; }
+.fp-action.act-split { background: rgba(221, 17, 10, 0.12); color: #A60D07; }
+.fp-action.act-merge { background: rgba(132, 180, 230, 0.45); color: var(--ink); }
+.fp-action:hover { filter: brightness(0.95); }
+.fp-action:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fp-summary { font-size: 15px; line-height: 22px; font-weight: 600; }
+
+/* The chart and its hover readout. */
+.fp-chart-box { position: relative; }
+.fp-chart-box[hidden] { display: none; }
+.fp-chart { display: block; width: 100%; height: auto; touch-action: none; }
+.fp-chart text { font: 600 11px var(--font-ui); fill: var(--muted); }
+.fp-chart text.zl { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+.fp-chart text.mk { font-size: 12px; font-weight: 700; fill: var(--ink); }
+/* a soft halo behind chart labels, so the line never makes them unreadable */
+.fp-chart text.zl, .fp-chart text.mk { paint-order: stroke; stroke: #FFFDF6; stroke-width: 4px; stroke-linejoin: round; }
+.fp-readout {
+  position: absolute; top: 4px; transform: translateX(-50%);
+  padding: 3px 10px; border-radius: 8px; white-space: nowrap; pointer-events: none;
+  background: var(--ink); color: var(--sweet-corn);
+  font-size: 12px; line-height: 18px; font-weight: 600;
+}
+.fp-readout[hidden] { display: none; }
+
+@media (max-width: 900px) {
+  .map-body.with-panel { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .forecast-btn, .fp-chip { transition: none; }
 }

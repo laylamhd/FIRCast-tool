@@ -16,19 +16,25 @@ We tested it in Chromium (the engine behind Chrome and Edge). Give it a quick lo
 fircast-web/
 ├── index.html                 Home page
 ├── map.html                   Full interactive map
+├── insights.html              Insights: 12 months as a timeline (R&D, temporary for everyone)
+├── insights-month.html        Insights: one month's statistics
 ├── assets/
 │   └── images/                Logo and favicon
 ├── css/
 │   ├── base.css               Shared: colour and font tokens, reset, nav bar, buttons
 │   ├── home.css               Home page only
-│   └── map.css                Map page only
+│   ├── map.css                Map page only
+│   └── insights.css           Both Insights pages
 ├── data/
 │   ├── airspace.js            FIR, routes, waypoints, sectors and flight plans
 │   ├── land-home.js           Coastlines for the small map on the home page
-│   └── land-region.js         Coastlines for the full map (Middle East)
+│   ├── land-region.js         Coastlines for the full map (Middle East)
+│   ├── sample-recommendations.js  Made-up model output, used until the API exists
+│   └── sample-insights.js     Made-up monthly statistics for the Insights pages
 ├── js/
 │   ├── shared/
-│   │   └── nav.js             Shrinks the nav bar on scroll (both pages)
+│   │   ├── nav.js             Shrinks the nav bar on scroll (every page)
+│   │   └── radar-background.js  Faint radar sweep behind the map and Insights pages
 │   ├── home/
 │   │   ├── story-scene.js     Animated background that follows the scroll
 │   │   ├── hero-card.js       Headline word reveal, card tilt and spotlight
@@ -36,11 +42,21 @@ fircast-web/
 │   │   ├── scale.js           Scroll reveal, counting number, live flight counter
 │   │   ├── problem-timeline.js  Section 3 chart driven by scrolling
 │   │   └── tagline.js         Section 4 words, runway lights and landing plane
-│   └── map/
-│       ├── map.js             The full map: projection, 2D/3D, traffic, controls, air show
-│       └── radar-background.js  Faint radar sweep behind the page
+│   ├── map/
+│   │   ├── map.js             The full map: projection, 2D/3D, traffic, controls, air show
+│   │   ├── geometry.js        Split / merge sector outlines (for the sample data)
+│   │   ├── recommendations-api.js  The only code that talks to the model's server
+│   │   ├── review.js          Review mode: compare, explain, accept or override
+│   │   └── forecast-panel.js  Hideable panel: one sector's forecast for the next hour
+│   └── insights/
+│       ├── insights-api.js    The only code that fetches monthly statistics
+│       ├── year-dial.js       The year picker: years on a half-circle that snaps
+│       ├── timeline.js        The 12-month route
+│       ├── month.js           Fills one month's statistics page
+│       └── charts.js          Small SVG charts used on the month page
 └── docs/
-    └── HOW-IT-WORKS.md        Colours, animations and the map explained for the team
+    ├── HOW-IT-WORKS.md        Colours, animations and the map explained for the team
+    └── API.md                 Format of the recommendations and decisions endpoints
 ```
 
 The layout follows a common convention: one folder per file type, then one file per page or feature inside it. Shared code lives in `css/base.css` and `js/shared/`, and each page loads only the files it needs. Every file starts with a header comment saying what it does, which page uses it and what must be loaded before it.
@@ -52,6 +68,22 @@ Each HTML page loads `css/base.css` first and then its own stylesheet, so page s
 All colours, fonts, shadows and the main easing curve are CSS custom properties defined once in `:root` in `base.css`. Change a colour there and it changes everywhere. Where JavaScript draws on a canvas it uses the same hex values; those are listed at the top of each script.
 
 For a walk-through of the animations, the background story and the map projection, read [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md).
+
+## Forecast panel
+
+The **Forecast** button in the map header shows or hides a panel beside the map. It shows what the model predicts for one sector over the next hour: a sentence in plain words, and a chart whose background is split into Low (merge), Normal (keep) and High (split) zones by the model's two limits. Chips at the top switch sector, and so does clicking a sector on the map; each chip's dot shows the worst zone that sector is heading for. If the sector has a pending recommendation, a Split or Merge badge opens review mode at it. The status line says when the forecast was made and turns red if the model stops answering.
+
+## Insights (R&D)
+
+A temporary **Insights** tab, next to Map, for the research and development team. Once login exists, only R&D will see it.
+
+`insights.html` shows the year as a dotted flight route drawn straight on the page, with twelve waypoints, one per month. A bigger waypoint means more flights per day that month, the orange plane marks the latest month, and months that haven't happened yet are faded. The year is chosen on a dial: the years sit on a half-circle above the route, and you drag, swipe or scroll sideways (or use the arrow keys, or click a year) to turn it; when you let go it snaps the nearest year under the red marker. The route always runs left to right; on phones it scrolls sideways. Clicking a month opens `insights-month.html?month=YYYY-MM`, with four cards: traffic, sectors, model accuracy and recommendations. Each has a few figures with the change from last month, and one chart. All numbers are sample data until the API exists (see [docs/API.md](docs/API.md)).
+
+## Review mode
+
+When the model recommends a split or a merge, a **Review** button with a count appears above the map. Review mode takes the recommendations one at a time, most urgent first. Each one shows the current sectors and the proposed sectors on two maps side by side (they share one camera, so panning one moves both), a sentence on why, and the forecast chart behind it. The supervisor accepts, and the live map switches to the new configuration, or overrides with a required reason. "Keep" recommendations need no decision and are only listed.
+
+Until the model is connected, the recommendations are sample data. [docs/API.md](docs/API.md) describes the format the model's server must return and how to switch the page over to it.
 
 ## Course topics covered
 

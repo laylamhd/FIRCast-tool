@@ -1,6 +1,6 @@
 // =====================================================================
-// FIRCast · js/map/radar-background.js
-// Used on: map.html (the faint radar behind the page).
+// FIRCast · js/shared/radar-background.js
+// Used on: map.html, insights.html, insights-month.html (needs <canvas id="radar">).
 //
 // Range rings and bearing ticks are drawn once to an off-screen canvas, then
 // each frame copies them and adds the sweep (a fading 60° wedge drawn as thin
@@ -58,6 +58,10 @@
 
   // Draw one frame: copy the still rings, then add the sweep and the echoes.
   function draw(seconds) {
+    // the window can be 0 x 0 for a moment (e.g. inside a preview pane that is
+    // still opening); there is nothing to draw until it has a size
+    if (W !== window.innerWidth || H !== window.innerHeight) setup();   // the window got its real size
+    if (!rings || !rings.width || !rings.height) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, cv.width, cv.height);
     ctx.drawImage(rings, 0, 0);

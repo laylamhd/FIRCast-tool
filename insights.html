@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Insights · FIRCast</title>
+  <meta name="description" content="Twelve months of FIRCast statistics: traffic, sector load, model accuracy and recommendations. Pick a month to see its details.">
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+
+  <!-- Fonts: Bricolage Grotesque for headlines and big numbers, Manrope for everything else -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Styles: shared base first, then the Insights pages' own file -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/insights.css">
+</head>
+
+<body>
+  <!-- Skip link: hidden until a keyboard user presses Tab, then jumps straight to the content -->
+  <a class="skip" href="#main">Skip to content</a>
+
+  <!-- Navigation bar. Insights is temporary for everyone; after login it will show for R&D only -->
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="index.html" aria-label="FIRCast home">
+      <img class="brand-logo" src="assets/images/logo.png" width="39" height="32" alt="">
+      <span class="brand-name">FIRCast</span>
+    </a>
+    <div class="nav-links">
+      <a class="nav-link" href="map.html">Map</a>
+      <a class="nav-link" href="insights.html" aria-current="page">Insights</a>
+    </div>
+  </nav>
+
+  <!-- Faded radar sweep behind the whole page (js/shared/radar-background.js) -->
+  <canvas id="radar" aria-hidden="true"></canvas>
+
+  <main id="main" class="timeline-page">
+    <!-- The page heading, for screen readers; the dial below shows the year visually -->
+    <h1 class="sr-only" id="year-title">Insights</h1>
+    <!-- Year dial: years on a half-circle; drag, swipe, scroll or use the arrow keys to turn it (js/insights/year-dial.js) -->
+    <div class="year-dial" id="year-dial" role="slider" tabindex="0" aria-label="Year"></div>
+    <p class="lead">Pick a month to see its traffic, sector load, model accuracy and recommendations.</p>
+
+    <!-- The timeline, drawn straight on the page: twelve months as waypoints on a route (js/insights/timeline.js) -->
+    <section class="route-area" id="route-area" aria-labelledby="year-title">
+      <div class="route-box">
+        <svg class="route" id="route" role="list" aria-label="Months"></svg>
+        <div class="route-tip" id="route-tip" hidden></div>
+      </div>
+      <p class="route-note">Bigger waypoint = more flights that month</p>
+    </section>
+  </main>
+
+  <!-- Scripts, in order: sample data, the API wrapper, the page, then shared bits -->
+  <script src="data/sample-insights.js"></script>
+  <script src="js/insights/insights-api.js"></script>
+  <script src="js/insights/year-dial.js"></script>
+  <script src="js/insights/timeline.js"></script>
+  <script src="js/shared/radar-background.js"></script>
+  <script src="js/shared/nav.js"></script>
+</body>
+</html>
