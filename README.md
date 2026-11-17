@@ -76,7 +76,7 @@ The **Forecast** button in the map header shows or hides a panel beside the map.
 
 A temporary **Insights** tab, next to Map, for the research and development team. Once login exists, only R&D will see it.
 
-`insights.html` shows the year as a flight route with twelve waypoints, one per month. A bigger waypoint means more flights per day that month, the orange plane marks the latest month, and months that haven't happened yet are faded. The route can run horizontally or vertically (remembered in the browser; always vertical on phones). Clicking a month opens `insights-month.html?month=YYYY-MM`, with four cards: traffic, sectors, model accuracy and recommendations. Each has a few figures with the change from last month, and one chart. All numbers are sample data until the API exists (see [docs/API.md](docs/API.md)).
+`insights.html` shows the year as a dotted flight route drawn straight on the page, with twelve waypoints, one per month. A bigger waypoint means more flights per day that month, the orange plane marks the latest month, and months that haven't happened yet are faded. A dropdown at the top right switches between horizontal (the default) and vertical; phones are always vertical. Clicking a month opens `insights-month.html?month=YYYY-MM`, with four cards: traffic, sectors, model accuracy and recommendations. Each has a few figures with the change from last month, and one chart. All numbers are sample data until the API exists (see [docs/API.md](docs/API.md)).
 
 ## Review mode
 

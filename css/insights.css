@@ -24,29 +24,38 @@ h1 {
 }
 .sample-chip[hidden] { display: none; }
 
-/* Segmented control (Horizontal / Vertical): same look as the map's 2D / 3D switch */
-.seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 9999px; background: rgba(19, 35, 58, 0.08); }
-.seg button {
-  height: 32px; padding: 0 14px; border: 0; border-radius: 9999px; cursor: pointer;
-  background: transparent; color: var(--muted); font: 700 14px/1 var(--font-ui);
-  transition: background-color 300ms var(--ease), color 300ms var(--ease);
-}
-.seg button:hover { color: var(--ink); }
-.seg button[aria-pressed="true"] { background: var(--ink); color: var(--sweet-corn); }
 
-/* ---- Timeline page: the route card, centred ---- */
+/* ---- Timeline page: the route straight on the page, centred ---- */
 .timeline-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.route-card {
-  width: min(1040px, 100%);
-  background: var(--sweet-corn); border-radius: 24px; box-shadow: var(--lift);
-  padding: 20px 24px 18px;
-}
-.route-card.is-vertical { width: min(380px, 100%); }
-.route-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
-.route-head .seg { margin-left: auto; }
+.route-area { width: min(1100px, 100%); }
+.route-area.is-vertical { width: min(360px, 100%); }
 .route-box { position: relative; margin-top: 8px; }
 .route { display: block; width: 100%; height: auto; overflow: visible; }
-.route-line { fill: none; stroke: var(--ink); stroke-opacity: 0.35; stroke-width: 2.5; stroke-dasharray: 2 9; stroke-linecap: round; }
+/* The route: round dark-grey dots */
+.route-line { fill: none; stroke: #4B5563; stroke-width: 3.5; stroke-dasharray: 0.1 10; stroke-linecap: round; }
+
+/* Direction dropdown, top right of the page */
+.dir-menu { position: absolute; top: 104px; right: 24px; z-index: 5; }
+.dir-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 14px 0 16px; border: 0; border-radius: 9999px; cursor: pointer;
+  background: var(--sweet-corn); color: var(--ink); box-shadow: var(--lift-small);
+  font: 700 14px/1 var(--font-ui);
+}
+.dir-btn svg { transition: transform 300ms var(--ease); }
+.dir-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+.dir-list {
+  position: absolute; right: 0; top: 48px; min-width: 170px;
+  display: grid; gap: 2px; padding: 6px; border-radius: 16px;
+  background: var(--sweet-corn); box-shadow: var(--lift-small);
+}
+.dir-list[hidden] { display: none; }
+.dir-list button {
+  text-align: left; border: 0; border-radius: 10px; padding: 10px 12px; cursor: pointer;
+  background: transparent; color: var(--ink); font: 700 14px/1 var(--font-ui);
+}
+.dir-list button:hover { background: rgba(19, 35, 58, 0.07); }
+.dir-list button[aria-checked="true"] { background: var(--ink); color: var(--sweet-corn); }
 /* Waypoints: the map's triangle. Hover and focus fill it navy; future months are faded. */
 .wp { cursor: pointer; outline: none; }
 .wp .hit { fill: transparent; }
@@ -126,12 +135,12 @@ h1 {
 }
 @media (max-width: 640px) {
   h1 { font-size: 36px; line-height: 40px; }
-  .route-head .seg { display: none; }            /* always vertical on phones */
-  .route-card, .route-card.is-vertical { width: 100%; padding: 16px; }
+  .dir-menu { display: none; }                   /* always vertical on phones */
+  .route-area, .route-area.is-vertical { width: 100%; }
   .month-top { grid-template-columns: 1fr auto; }
   .month-title { grid-column: 1 / -1; grid-row: 1; }
   .stat-card { padding: 16px; border-radius: 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .seg button, .wp .tri, .step-btn { transition: none; }
+  .dir-btn svg, .wp .tri, .step-btn { transition: none; }
 }

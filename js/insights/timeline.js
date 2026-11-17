@@ -8,9 +8,8 @@
 //   - Months with data are links to insights-month.html?month=YYYY-MM.
 //     Months that haven't happened yet are faded and can't be clicked.
 //   - The orange plane (the map's plane shape) sits on the latest month.
-//   - Horizontal or vertical: the route is recomputed for the chosen
-//     direction. The choice is remembered in this browser (localStorage).
-//     On narrow screens the route is always vertical.
+//   - Horizontal (the default, every time the page opens) or vertical, from
+//     the dropdown at the top right. On narrow screens it is always vertical.
 // =====================================================================
 
 (() => {
@@ -23,8 +22,7 @@
   const narrow = window.matchMedia('(max-width: 640px)');
 
   let year = null;
-  let direction = 'h';
-  try { direction = localStorage.getItem('fircast.timeline') === 'v' ? 'v' : 'h'; } catch (e) { /* storage blocked: use the default */ }
+  let direction = 'h';                                                 // horizontal by default
 
   // Make an SVG element with attributes.
   function el(tag, attrs, parent) {
@@ -58,9 +56,7 @@
 
   function render() {
     const h = direction === 'h' && !narrow.matches;
-    $('route-card').classList.toggle('is-vertical', !h);
-    $('dir-h').setAttribute('aria-pressed', String(direction === 'h'));
-    $('dir-v').setAttribute('aria-pressed', String(direction === 'v'));
+    $('route-area').classList.toggle('is-vertical', !h);
     const { W, H, pts } = layout(h);
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.innerHTML = '';
@@ -112,23 +108,34 @@
   }
   function hideTip() { tip.hidden = true; }
 
+  // ---------- Direction dropdown ----------
+  const menuBtn = $('dir-btn'), menu = $('dir-list');
+  function setMenu(open) {
+    menu.hidden = !open;
+    menuBtn.setAttribute('aria-expanded', String(open));
+    if (open) menu.querySelector('[aria-checked="true"]').focus();
+  }
   function setDirection(d) {
     direction = d;
-    try { localStorage.setItem('fircast.timeline', d); } catch (e) { /* not saved: fine */ }
+    menu.querySelectorAll('[data-dir]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.dir === d)));
+    $('dir-label').textContent = d === 'h' ? 'Horizontal' : 'Vertical';
+    setMenu(false);
+    menuBtn.focus();
     render();
   }
-  $('dir-h').addEventListener('click', () => setDirection('h'));
-  $('dir-v').addEventListener('click', () => setDirection('v'));
+  menuBtn.addEventListener('click', () => setMenu(menu.hidden));
+  menu.querySelectorAll('[data-dir]').forEach(b => b.addEventListener('click', () => setDirection(b.dataset.dir)));
+  document.addEventListener('pointerdown', e => { if (!menu.hidden && !$('dir-menu').contains(e.target)) setMenu(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { setMenu(false); menuBtn.focus(); } });
   narrow.addEventListener('change', render);
 
   const thisYear = new Date().getUTCFullYear();
   FIRCastInsights.getYear(thisYear).then(data => {
     year = data;
     $('year-title').textContent = data.year;
-    $('sample-chip').hidden = !data.sample;
     render();
   }).catch(err => {
     console.warn('FIRCast: could not load insights.', err);
-    $('route-card').innerHTML = '<p class="route-error">Couldn\'t load the statistics. Try again in a moment.</p>';
+    $('route-area').innerHTML = '<p class="route-error">Couldn\'t load the statistics. Try again in a moment.</p>';
   });
 })();
