@@ -88,6 +88,10 @@ Sent once per decision.
 - **Complexity scale and limits.** The 0–1 index and the 0.30 / 0.75 limits are placeholders until the model's output and the sector capacity values are agreed.
 - **Controllers per sector.** The page assumes one controller (or team) per open sector when it shows "1 → 2 controllers". Confirm this with the GCAA.
 
+## GET /insights/years
+
+The years that have statistics, oldest first, for the year picker on the timeline page: `[2024, 2025, 2026]`.
+
 ## GET /insights?year=2026
 
 Monthly statistics for the Insights pages (`insights.html` and `insights-month.html`). Until the server exists, `data/sample-insights.js` makes up numbers in this format. To switch, set `baseUrl` in `js/insights/insights-api.js`.

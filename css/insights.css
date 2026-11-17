@@ -25,9 +25,26 @@ h1 {
 .sample-chip[hidden] { display: none; }
 
 
+/* ---- Timeline page: the year, with the years before and after beside it ---- */
+.year-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 28px; width: min(560px, 100%); }
+.year-row h1 { min-width: 3.2ch; }
+/* Just the number: no box, no background. Faded until hovered. */
+.year-side {
+  border: 0; padding: 4px 6px; background: none; cursor: pointer;
+  font: 800 30px/1 var(--font-display); font-variation-settings: var(--display-opsz); letter-spacing: -0.02em;
+  color: var(--ink); opacity: 0.35;
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+}
+#year-prev { justify-self: end; }
+#year-next { justify-self: start; }
+.year-side:hover { opacity: 0.75; transform: scale(1.06); }
+.year-side:focus-visible { opacity: 0.75; outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 8px; }
+.year-side.is-empty { visibility: hidden; }
+
 /* ---- Timeline page: the route straight on the page, centred ---- */
 .timeline-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.route-area { width: min(1100px, 100%); }
+.route-area { width: min(1100px, 100%); transition: opacity 160ms var(--ease); }
+.route-area.is-switching { opacity: 0; }
 .route-box { position: relative; margin-top: 8px; }
 .route { display: block; width: 100%; height: auto; overflow: visible; }
 /* The route: round dark-grey dots */
@@ -112,6 +129,8 @@ h1 {
 }
 @media (max-width: 640px) {
   h1 { font-size: 36px; line-height: 40px; }
+  .year-row { gap: 16px; }
+  .year-side { font-size: 22px; }
   .route-box { overflow-x: auto; padding: 40px 0 8px; margin-top: -32px; }   /* the route keeps its size and scrolls sideways */
   .route { min-width: 760px; }
   .month-top { grid-template-columns: 1fr auto; }
@@ -119,5 +138,5 @@ h1 {
   .stat-card { padding: 16px; border-radius: 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .wp .tri, .step-btn { transition: none; }
+  .wp .tri, .step-btn, .year-side, .route-area { transition: none; }
 }

@@ -8,6 +8,10 @@
 //   - Months with data are links to insights-month.html?month=YYYY-MM.
 //     Months that haven't happened yet are faded and can't be clicked.
 //   - The orange plane (the map's plane shape) sits on the latest month.
+//   - The year: the big number in the middle, with the years before and
+//     after faded beside it. Click one, or press the left / right arrow keys,
+//     to switch year. The address keeps ?year=YYYY, so the month pages can
+//     link back to the right year.
 //   - The route always runs left to right. On narrow screens it keeps its
 //     size and the box scrolls sideways (see .route-box in insights.css).
 // =====================================================================
@@ -101,13 +105,54 @@
   }
   function hideTip() { tip.hidden = true; }
 
-  const thisYear = new Date().getUTCFullYear();
-  FIRCastInsights.getYear(thisYear).then(data => {
-    year = data;
-    $('year-title').textContent = data.year;
-    render();
-  }).catch(err => {
+  // ---------- Year ----------
+  let years = [];
+  function showYear(y, push) {
+    return FIRCastInsights.getYear(y).then(data => {
+      year = data;
+      $('year-title').textContent = data.year;
+      document.title = `Insights ${data.year} · FIRCast`;
+      const i = years.indexOf(data.year);
+      sideYear($('year-prev'), years[i - 1]);
+      sideYear($('year-next'), years[i + 1]);
+      $('route-area').classList.remove('is-switching');
+      render();
+      if (push) history.replaceState(null, '', `?year=${data.year}`);
+    });
+  }
+  // A neighbouring year: shown faded if it has data, hidden (but keeping its space) if not.
+  function sideYear(btn, y) {
+    btn.textContent = y || '';
+    btn.dataset.year = y || '';
+    btn.classList.toggle('is-empty', !y);
+    btn.tabIndex = y ? 0 : -1;
+    btn.setAttribute('aria-label', y ? `Show ${y}` : '');
+    btn.setAttribute('aria-hidden', String(!y));
+  }
+  function switchTo(y) {
+    if (!y || y === year.year) return;
+    $('route-area').classList.add('is-switching');                   // quick fade while the new year loads
+    hideTip();
+    setTimeout(() => showYear(y, true).catch(fail), 160);
+  }
+  $('year-prev').addEventListener('click', e => switchTo(Number(e.currentTarget.dataset.year)));
+  $('year-next').addEventListener('click', e => switchTo(Number(e.currentTarget.dataset.year)));
+  document.addEventListener('keydown', e => {                          // left / right arrows change year
+    if (!year || e.altKey || e.ctrlKey || e.metaKey) return;
+    const i = years.indexOf(year.year);
+    if (e.key === 'ArrowLeft') switchTo(years[i - 1]);
+    if (e.key === 'ArrowRight') switchTo(years[i + 1]);
+  });
+
+  function fail(err) {
     console.warn('FIRCast: could not load insights.', err);
     $('route-area').innerHTML = '<p class="route-error">Couldn\'t load the statistics. Try again in a moment.</p>';
-  });
+  }
+
+  // Start: the year in the address (?year=2025) if it has data, otherwise the latest year.
+  FIRCastInsights.getYears().then(list => {
+    years = list.slice().sort((a, b) => a - b);
+    const asked = Number(new URLSearchParams(location.search).get('year'));
+    return showYear(years.includes(asked) ? asked : years[years.length - 1], false);
+  }).catch(fail);
 })();

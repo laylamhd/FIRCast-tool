@@ -103,6 +103,7 @@
   const valid = /^\d{4}-(0[1-9]|1[0-2])$/.test(wanted || '');
   const y = valid ? Number(wanted.slice(0, 4)) : new Date().getUTCFullYear();
 
+  $('back-link').href = `insights.html?year=${y}`;                     // back to this month's year
   FIRCastInsights.getYear(y).then(data => {
     year = data;
     const list = data.months;

@@ -37,7 +37,13 @@
   <canvas id="radar" aria-hidden="true"></canvas>
 
   <main id="main" class="timeline-page">
-    <h1 id="year-title">2026</h1>
+    <!-- Year: the big number in the middle; the years before and after sit faded beside it.
+         Clicking one (or pressing the left / right arrow keys) switches the timeline to that year. -->
+    <div class="year-row">
+      <button type="button" class="year-side" id="year-prev" aria-label="Previous year"></button>
+      <h1 id="year-title"></h1>
+      <button type="button" class="year-side" id="year-next" aria-label="Next year"></button>
+    </div>
     <p class="lead">Pick a month to see its traffic, sector load, model accuracy and recommendations.</p>
 
     <!-- The timeline, drawn straight on the page: twelve months as waypoints on a route (js/insights/timeline.js) -->
