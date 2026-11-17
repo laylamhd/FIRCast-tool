@@ -9,7 +9,7 @@
 //   - one projection for both views: 2D is a 3D camera looking straight down,
 //     3D tilts and turns the same camera (project / unproject functions);
 //   - drawing order: sea and land, grid, routes, sectors (as flat shapes or
-//     3D blocks), radar sweep, aircraft, scales and north arrow;
+//     3D blocks), aircraft, scales and north arrow;
 //   - mouse, touch and keyboard controls, the dropdown, the plane panel;
 //   - the opening air show (a 3D plane with a smoke trail that lands at Dubai);
 //   - review mode: a second canvas shows the proposed sector configuration
@@ -820,31 +820,6 @@
     ctx.restore();
   }
 
-  // A faint radar over the map: range rings every 50 NM around the FIR's
-  // centre and a slow sweep, drawn on the ground so it tilts in 3D too.
-  const RADAR_C = [54.3, 24.6], RADAR_PERIOD = 9;
-  const radarPoint = (nm, ang) => [RADAR_C[0] + (Math.sin(ang) * nm) / NM_PER_DEG / K, RADAR_C[1] + (Math.cos(ang) * nm) / NM_PER_DEG];
-  // The faint radar on the map: range rings every 50 NM and a sweep that turns
-  // once every RADAR_PERIOD seconds.
-  function drawRadar(seconds) {
-    ctx.save();
-    ctx.strokeStyle = `rgba(${INK}, 0.12)`; ctx.lineWidth = 1;
-    for (let nm = 50; nm <= 300; nm += 50) {
-      path(Array.from({ length: 73 }, (_, i) => radarPoint(nm, (i / 72) * Math.PI * 2)), 0, false); ctx.stroke();
-    }
-    if (reduceMotion) { ctx.restore(); return; }
-    const sweep = ((seconds / RADAR_PERIOD) % 1) * Math.PI * 2;   // clockwise from north, like a real scope
-    const slices = 30, trail = Math.PI / 3, reach = 300;
-    for (let i = 0; i < slices; i++) {
-      const a1 = sweep - (trail * i) / slices, a0 = sweep - (trail * (i + 1)) / slices;
-      path([RADAR_C, radarPoint(reach, a0), radarPoint(reach, (a0 + a1) / 2), radarPoint(reach, a1)]);
-      ctx.fillStyle = `rgba(${INK}, ${0.08 * (1 - i / slices) ** 2})`; ctx.fill();
-    }
-    path([RADAR_C, radarPoint(reach, sweep)], 0, false);
-    ctx.strokeStyle = `rgba(${INK}, 0.22)`; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.restore();
-  }
-
   // Draw one whole frame, back to front. The order is what makes layers overlap correctly.
   function draw() {
     if (!W || !H) return;
@@ -853,7 +828,6 @@
     if (!flat) { drawAirways(); drawWaypoints(); }             // 3D: on the ground, under the blocks
     drawSectors();
     if (flat) drawAirways();                                   // 2D: on top of the sector colours
-    drawRadar(performance.now() / 1000);                       // sweep passes over the sectors, under the planes
     if (flat) drawWaypoints();                                 // 2D: on top, so they stay readable
     drawHaze();
     drawFlights();

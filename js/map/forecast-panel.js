@@ -129,9 +129,6 @@
     s += `<rect x="${L}" y="${y(top)}" width="${W - L - R}" height="${y(high) - y(top)}" fill="${ZONE.high.fill}"/>`;
     s += `<rect x="${L}" y="${y(high)}" width="${W - L - R}" height="${y(low) - y(high)}" fill="${ZONE.normal.fill}"/>`;
     s += `<rect x="${L}" y="${y(low)}" width="${W - L - R}" height="${y(0) - y(low)}" fill="${ZONE.low.fill}"/>`;
-    s += `<text class="zl" x="${L + 8}" y="${y(top) + 16}" style="fill:${ZONE.high.ink}">High · split</text>`;
-    s += `<text class="zl" x="${L + 8}" y="${y(high) + 16}" style="fill:${ZONE.normal.ink}">Normal · keep</text>`;
-    s += `<text class="zl" x="${L + 8}" y="${y(low) + 16}" style="fill:${ZONE.low.ink}">Low · merge</text>`;
     // the two limits, with their values on the left axis
     [[high, ZONE.high.dot], [low, ZONE.low.dot]].forEach(([v, c]) => {
       s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-width="1.5" stroke-dasharray="5 4"/>`;
@@ -155,6 +152,10 @@
       const right = x(pi) > W - 90;
       s += `<text class="mk" x="${x(pi) + (right ? -8 : 8)}" y="${y(peak) - 8}" text-anchor="${right ? 'end' : 'start'}">Peak ${peak.toFixed(2)}</text>`;
     }
+    // zone names, drawn after the line so the line never hides them
+    s += `<text class="zl" x="${L + 8}" y="${y(top) + 16}" style="fill:${ZONE.high.ink}">High · split</text>`;
+    s += `<text class="zl" x="${L + 8}" y="${y(high) + 16}" style="fill:${ZONE.normal.ink}">Normal · keep</text>`;
+    s += `<text class="zl" x="${L + 8}" y="${y(low) + 16}" style="fill:${ZONE.low.ink}">Low · merge</text>`;
     // time axis: clock times every 15 min
     for (let i = 0; i < n; i += 3) {
       const anchor = i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle';
