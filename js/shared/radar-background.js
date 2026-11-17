@@ -58,6 +58,10 @@
 
   // Draw one frame: copy the still rings, then add the sweep and the echoes.
   function draw(seconds) {
+    // the window can be 0 x 0 for a moment (e.g. inside a preview pane that is
+    // still opening); there is nothing to draw until it has a size
+    if (W !== window.innerWidth || H !== window.innerHeight) setup();   // the window got its real size
+    if (!rings || !rings.width || !rings.height) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, cv.width, cv.height);
     ctx.drawImage(rings, 0, 0);
