@@ -149,8 +149,14 @@
       `<span class="act act-${rec.action}">${ACTION[rec.action]}</span>${listIds(rec.sectors)} ${whenText(rec.effective_at)}` +
       (keep.length ? `<span class="of" style="margin-left:12px">Keep: ${keep.join(', ')}</span>` : '');
     const a = rec.sectors.length, b = rec.proposed.length;
-    $('cap-now').innerHTML = `<b>Now</b> · ${a} ${plural(a, 'controller', 'controllers')} (${rec.sectors.join(', ')})`;
-    $('cap-after').innerHTML = `<b>Proposed</b> · ${b} ${plural(b, 'controller', 'controllers')} (${rec.proposed.map(p => p.id).join(', ')})`;
+    // pane titles: Before / After, what is there, and a key for the orange line
+    const split = rec.action === 'split';
+    $('cap-now').innerHTML =
+      `<span class="pane-tag">Before</span><span class="pane-what">${rec.sectors.join(' + ')} · ${a} ${plural(a, 'controller', 'controllers')}</span>` +
+      (split ? '' : '<span class="pane-key"><i class="key-dashed"></i>Border to remove</span>');
+    $('cap-after').innerHTML =
+      `<span class="pane-tag is-after">After ${split ? 'split' : 'merge'}</span><span class="pane-what">${rec.proposed.map(p => p.id).join(' + ')} · ${b} ${plural(b, 'controller', 'controllers')}</span>` +
+      (split ? '<span class="pane-key"><i class="key-solid"></i>New border</span>' : '');
     $('why-text').textContent = explain(rec);
     drawChart(rec);
     closeOverride();

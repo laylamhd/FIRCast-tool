@@ -831,6 +831,7 @@
     if (flat) drawWaypoints();                                 // 2D: on top, so they stay readable
     drawHaze();
     drawFlights();
+    if (review) { drawSpotlight(); drawChangeLines(); }        // review mode: light on the sectors in question
     drawWaypointLabel();
     drawOverlays();
   }
@@ -1164,9 +1165,70 @@
     flyTo({ lon: (b.minLon + b.maxLon) / 2, lat: (b.minLat + b.maxLat) / 2, scale, ...VIEW_2D }, ms);
   }
 
+  // Borders that two or more of these outlines share (matching corners, either direction).
+  function sharedEdges(polys) {
+    const key = p => p[0].toFixed(4) + ',' + p[1].toFixed(4);
+    const seen = new Map();
+    polys.forEach(poly => poly.forEach((p, i) => {
+      const q = poly[(i + 1) % poly.length];
+      const k = [key(p), key(q)].sort().join('|');
+      seen.set(k, { edge: [p, q], n: (seen.get(k)?.n || 0) + 1 });
+    }));
+    return [...seen.values()].filter(e => e.n > 1).map(e => e.edge);
+  }
+
+  // Review mode: darken everything except the sectors the recommendation is
+  // about (a dark veil with holes cut out where those sectors are), then
+  // outline them strongly so the eye goes straight there.
+  function drawSpotlight() {
+    const list = (drawnSectors || sectors).filter(s => focusIds && focusIds.has(s.id));
+    if (!list.length) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, H);
+    list.forEach(s => s.poly.forEach(([lon, lat], i) => {    // each sector outline becomes a hole in the veil
+      const [x, y] = project(lon, lat);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }));
+    ctx.fillStyle = `rgba(${INK}, 0.42)`;
+    ctx.fill('evenodd');
+    list.forEach(s => {                                        // a soft light rim, then a strong outline
+      path(s.poly);
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(251, 244, 219, 0.9)'; ctx.lineWidth = 7; ctx.stroke();
+      ctx.strokeStyle = `rgb(${INK})`; ctx.lineWidth = 2.5; ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // The border that changes, drawn so it can't be mistaken for an airway:
+  //   after a split  -> the NEW border, thick solid orange (right map);
+  //   before a merge -> the border that will be REMOVED, thick dashed orange (left map).
+  function drawChangeLines() {
+    const proposedPass = !!drawnSectors;
+    const edges = proposedPass ? review.newEdges : review.removedEdges;
+    if (!edges.length) return;
+    ctx.save();
+    ctx.lineCap = 'round';
+    edges.forEach(([a, b]) => {
+      const [x1, y1] = project(a[0], a[1]), [x2, y2] = project(b[0], b[1]);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+      ctx.setLineDash([]);
+      ctx.strokeStyle = 'rgba(251, 244, 219, 0.95)'; ctx.lineWidth = 9; ctx.stroke();   // light casing
+      ctx.setLineDash(proposedPass ? [] : [10, 8]);
+      ctx.strokeStyle = '#DD110A'; ctx.lineWidth = 5; ctx.stroke();
+    });
+    ctx.restore();
+  }
+
   // Show one recommendation: current sectors on the left, proposed on the right.
   function showRecommendation(rec) {
-    review = { now: new Set(rec.sectors), after: new Set(rec.proposed.map(p => p.id)), list: proposedList(rec) };
+    const oldPolys = sectors.filter(s => rec.sectors.includes(s.id)).map(s => s.poly);
+    review = {
+      now: new Set(rec.sectors), after: new Set(rec.proposed.map(p => p.id)), list: proposedList(rec),
+      newEdges: rec.action === 'split' ? sharedEdges(rec.proposed.map(p => p.polygon)) : [],
+      removedEdges: rec.action === 'merge' ? sharedEdges(oldPolys) : []
+    };
     focusIds = review.now;
     frameIds(rec.sectors);
   }

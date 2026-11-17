@@ -122,14 +122,16 @@
            In review mode it shows two panes side by side: now and proposed. -->
       <div class="map-wrap">
         <div class="pane">
-          <p class="pane-cap" id="cap-now"></p>
+          <!-- Pane title (review mode only): "Before" + what is there now -->
+          <div class="pane-head" id="cap-now"></div>
           <!-- Main map canvas: land, FIR, sectors, airways, waypoints and traffic, redrawn every frame -->
           <canvas id="geo-map" class="map-canvas" tabindex="0" role="img"
             aria-label="Map of the Middle East centred on the UAE, with seven sectors, airways, waypoints and moving aircraft. Arrow keys move the map, plus and minus zoom, 0 resets."></canvas>
         </div>
         <!-- Proposed configuration (review mode only). Same camera as the main map. -->
         <div class="pane" hidden>
-          <p class="pane-cap" id="cap-after"></p>
+          <!-- Pane title (review mode only): "After split / merge" + what would replace it -->
+          <div class="pane-head" id="cap-after"></div>
           <canvas id="geo-proposed" class="map-canvas" role="img" aria-label="The same map with the proposed sector configuration."></canvas>
         </div>
 
