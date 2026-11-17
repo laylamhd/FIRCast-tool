@@ -547,7 +547,6 @@ button.btn { border: 0; cursor: pointer; font-family: var(--font-ui); }
   font-size: 12px; line-height: 18px; font-weight: 600;
 }
 .fp-readout[hidden] { display: none; }
-.fp-note { font-size: 12px; line-height: 16px; color: var(--muted); margin-top: auto; }
 
 @media (max-width: 900px) {
   .map-body.with-panel { grid-template-columns: 1fr; }
