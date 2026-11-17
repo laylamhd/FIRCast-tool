@@ -7,8 +7,10 @@
 // on the page calls these two functions and never knows where the data
 // comes from:
 //
+//   FIRCastAPI.subscribe(callback)   -> calls callback(run) with every new prediction run
 //   FIRCastAPI.getRecommendations()  -> Promise of the latest prediction run
 //   FIRCastAPI.sendDecision(decision) -> Promise; records accept / override
+//   FIRCastAPI.status()               -> { ok, lastRun, nextPollAt } for the "model live" line
 //
 // While CONFIG.baseUrl is null, recommendations come from the built-in
 // sample and decisions are only kept in memory. To connect the real model,
@@ -46,5 +48,29 @@ const FIRCastAPI = (() => {
     return res.json();
   }
 
-  return { CONFIG, getRecommendations, sendDecision, decisions };
+  // ---- One shared poll for the whole page ----
+  // The forecast panel and review mode both need each run; asking once and
+  // handing the result to every subscriber keeps them in step.
+  const listeners = [];
+  let latest = null, ok = null, nextPollAt = 0, started = false;
+  async function poll() {
+    nextPollAt = Date.now() + CONFIG.pollSeconds * 1000;
+    try {
+      latest = await getRecommendations();
+      ok = true;
+      listeners.forEach(fn => fn(latest));
+    } catch (err) {
+      ok = false;                                              // keep showing the last run, flagged as stale
+      console.warn('FIRCast: could not load the latest prediction run.', err);
+      listeners.forEach(fn => fn(latest));
+    }
+  }
+  function subscribe(fn) {
+    listeners.push(fn);
+    if (latest) fn(latest);
+    if (!started) { started = true; poll(); setInterval(poll, CONFIG.pollSeconds * 1000); }
+  }
+  const status = () => ({ ok, lastRun: latest ? latest.generated_at : null, nextPollAt });
+
+  return { CONFIG, subscribe, status, getRecommendations, sendDecision, decisions };
 })();

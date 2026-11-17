@@ -598,7 +598,7 @@
       path(s.poly, ceilFt(s));
       if (!blocks.includes(s)) { ctx.fillStyle = `rgba(251, 244, 219, ${0.5 * alphaOf(s)})`; ctx.fill(); }
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${(blocks.includes(s) ? 0.4 : 0.55) * alphaOf(s)})`; ctx.fill();
-      const strong = s === selected || s === hoveredSector;
+      const strong = s === selected || s === hoveredSector || (!drawnSectors && s.id === panelSectorId);
       ctx.strokeStyle = `rgba(${INK}, ${(strong ? 1 : 0.7) * alphaOf(s)})`;
       ctx.lineWidth = strong ? 2.5 : 1.5; ctx.stroke();
     });
@@ -1001,6 +1001,10 @@
     closePanel();
     const wp = waypointAt(x, y);                               // click a waypoint: show its name (click again to hide)
     openWaypoint = wp && wp !== openWaypoint ? wp : null;
+    if (!wp && !review && sectorClickHandler) {                // click a sector: show it in the forecast panel
+      const s = sectorAt(x, y);
+      if (s) sectorClickHandler(s.id);
+    }
   }
   // The same controls work on both map canvases (the second one only shows in review mode).
   [canvas, proposedCanvas].forEach(el => {
@@ -1153,6 +1157,8 @@
   // the live map when the supervisor accepts.
   const LEVEL_INDEX = { normal: 0, busy: 1, overloaded: 2 };
   let review = null;                     // { now: Set of ids, after: Set of ids, list: sectors to draw on the right }
+  let panelSectorId = null;              // sector shown in the forecast panel: drawn with a strong outline
+  let sectorClickHandler = null;         // set by js/map/forecast-panel.js
 
   // Turn the proposed sectors from the API into Sector objects. Sectors the
   // recommendation does not touch are the live ones, so their colours keep updating.
@@ -1224,6 +1230,7 @@
     sectors.forEach(s => { s.rgb = [...LEVEL_RGB[s.level]]; });
     buildSectorChips();
     document.querySelector('.map-title').textContent = `UAE region · ${sectors.length} sectors`;
+    configListeners.forEach(fn => fn(sectors.map(s => s.id)));
   }
 
   // Rebuild the sector radio chips in the dropdown from the current sector list.
@@ -1240,10 +1247,14 @@
     });
   }
 
-  // What js/map/review.js may use. Nothing else on the page touches the map's insides.
+  const configListeners = [];
+  // What js/map/review.js and js/map/forecast-panel.js may use. Nothing else on the page touches the map's insides.
   window.FIRMap = {
     sectorIds: () => sectors.map(s => s.id),
-    enterReview, showRecommendation, exitReview, applyConfiguration
+    enterReview, showRecommendation, exitReview, applyConfiguration,
+    highlight: id => { panelSectorId = id; },                  // outline one sector (forecast panel)
+    onSectorClick: fn => { sectorClickHandler = fn; },         // a sector on the map was clicked
+    onConfigChange: fn => { configListeners.push(fn); }        // sectors were split or merged
   };
 
   // =======================================================

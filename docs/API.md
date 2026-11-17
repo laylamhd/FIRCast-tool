@@ -26,6 +26,10 @@ Returns the latest prediction run.
   "step_min": 5,
   "horizon_min": 60,
   "thresholds": { "low": 0.30, "high": 0.75 },
+  "forecasts": {
+    "S1": [0.22, 0.20, 0.19, 0.18, 0.18, 0.17, 0.19, 0.20, 0.21, 0.22, 0.24, 0.25, 0.26],
+    "S6": [0.52, 0.56, 0.61, 0.67, 0.73, 0.79, 0.86, 0.90, 0.88, 0.84, 0.80, 0.77, 0.74]
+  },
   "recommendations": [
     {
       "id": "run-1347-split-S6",
@@ -49,6 +53,7 @@ Returns the latest prediction run.
 | `model_version` | Saved with every decision, so decisions can be traced to the model that produced them. |
 | `step_min`, `horizon_min` | Spacing and length of each forecast. 5 and 60 give 13 values. |
 | `thresholds` | The low and high complexity limits, in the same units as the forecast. |
+| `forecasts` | Predicted complexity for **every** open sector, one value per step. The forecast panel draws these. (Shortened to two sectors in the example above.) |
 | `id` | Unique per recommendation. The page never asks about the same id twice. |
 | `action` | `split`, `merge` or `keep`. Only split and merge are reviewed. |
 | `sectors` | The current sectors the action applies to (one for split, two or more for merge). |
@@ -56,7 +61,7 @@ Returns the latest prediction run.
 | `forecast` | Predicted complexity for each sector in `sectors`, one value per step. |
 | `proposed` | The sectors that would replace `sectors`: outline as `[longitude, latitude]` points (not closed), vertical limits in flight levels, and the predicted level (`normal`, `busy` or `overloaded`). |
 
-The page writes the "why" sentence and draws the chart from `forecast` and `thresholds`, so the explanation always matches the numbers.
+The page writes the "why" sentence and draws the charts from the forecasts and `thresholds`, so the explanation always matches the numbers. A sector that appears on the map but not in `forecasts` (for example, one created by a split the supervisor just accepted) shows "No forecast yet" until the next run includes it.
 
 ## POST /decisions
 

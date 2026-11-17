@@ -48,6 +48,11 @@
       <div class="map-head">
         <p class="map-title">UAE region · 7 sectors</p>
         <div class="head-controls">
+          <!-- Forecast button: shows or hides the forecast panel beside the map (js/map/forecast-panel.js) -->
+          <button type="button" class="forecast-btn" id="forecast-btn" aria-pressed="true" aria-controls="forecast-panel">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 L9 11 L13 15 L21 7"/><path d="M15 7 H21 V13"/></svg>
+            Forecast
+          </button>
           <!-- Review button: shown only when the model has split or merge recommendations (js/map/review.js) -->
           <button type="button" class="review-btn" id="review-btn" hidden>
             Review <span class="review-count" id="review-count">0</span>
@@ -110,6 +115,8 @@
         <button type="button" class="btn btn-sm btn-ghost" id="review-exit">Exit review</button>
       </div>
 
+      <!-- Map body: the map, and the forecast panel docked on its right (when shown) -->
+      <div class="map-body" id="map-body">
       <!-- Map area: the canvas plus the overlays that sit on top of it.
            In review mode it shows two panes side by side: now and proposed. -->
       <div class="map-wrap">
@@ -159,6 +166,25 @@
             <dt>Airway</dt>       <dd id="pp-airway">—</dd>
           </dl>
         </aside>
+      </div>
+
+      <!-- Forecast panel: what the model predicts for one sector over the next hour -->
+      <aside class="forecast-panel" id="forecast-panel" aria-label="Complexity forecast">
+        <p class="fp-status" id="fp-status"><i class="fp-dot"></i><span>Waiting for the model…</span></p>
+        <!-- One chip per sector, coloured by its worst predicted zone. Click to show that sector. -->
+        <div class="fp-chips" id="fp-chips" role="radiogroup" aria-label="Sector"></div>
+        <div class="fp-head">
+          <p class="fp-name" id="fp-name"></p>
+          <button type="button" class="fp-action" id="fp-action" hidden></button>
+        </div>
+        <p class="fp-summary" id="fp-summary"></p>
+        <!-- The chart: coloured zones for Low / Normal / High, the forecast line, and markers -->
+        <div class="fp-chart-box">
+          <svg class="fp-chart" id="fp-chart" role="img" aria-labelledby="fp-summary"></svg>
+          <p class="fp-readout" id="fp-readout" hidden></p>
+        </div>
+        <p class="fp-note">The map's colours show traffic now; this panel shows the model's forecast. Complexity index on a placeholder scale. Click a sector on the map or a chip to switch.</p>
+      </aside>
       </div>
 
       <!-- Review panel (review mode only): why the model recommends this, then accept or override -->
@@ -238,6 +264,7 @@
   <script src="js/map/radar-background.js"></script>
   <script src="js/map/recommendations-api.js"></script>
   <script src="js/map/review.js"></script>
+  <script src="js/map/forecast-panel.js"></script>
   <script src="js/shared/nav.js"></script>
 </body>
 </html>

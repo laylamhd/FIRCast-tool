@@ -42,6 +42,7 @@ fircast-web/
 │       ├── geometry.js        Split / merge sector outlines (for the sample data)
 │       ├── recommendations-api.js  The only code that talks to the model's server
 │       ├── review.js          Review mode: compare, explain, accept or override
+│       ├── forecast-panel.js  Hideable panel: one sector's forecast for the next hour
 │       └── radar-background.js  Faint radar sweep behind the page
 └── docs/
     ├── HOW-IT-WORKS.md        Colours, animations and the map explained for the team
@@ -57,6 +58,10 @@ Each HTML page loads `css/base.css` first and then its own stylesheet, so page s
 All colours, fonts, shadows and the main easing curve are CSS custom properties defined once in `:root` in `base.css`. Change a colour there and it changes everywhere. Where JavaScript draws on a canvas it uses the same hex values; those are listed at the top of each script.
 
 For a walk-through of the animations, the background story and the map projection, read [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md).
+
+## Forecast panel
+
+The **Forecast** button in the map header shows or hides a panel beside the map. It shows what the model predicts for one sector over the next hour: a sentence in plain words, and a chart whose background is split into Low (merge), Normal (keep) and High (split) zones by the model's two limits. Chips at the top switch sector, and so does clicking a sector on the map; each chip's dot shows the worst zone that sector is heading for. If the sector has a pending recommendation, a Split or Merge badge opens review mode at it. The status line says when the forecast was made and turns red if the model stops answering.
 
 ## Review mode
 

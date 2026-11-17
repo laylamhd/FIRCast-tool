@@ -63,14 +63,11 @@
     $('review-btn').setAttribute('aria-label', `Review ${n} ${plural(n, 'recommendation', 'recommendations')}`);
   }
 
-  // Ask for the latest prediction run (sample data until the API is connected).
-  async function poll() {
-    try {
-      run = await FIRCastAPI.getRecommendations();
-      if (!reviewing) updateButton();
-    } catch (err) {
-      console.warn('FIRCast: could not load recommendations.', err);   // keep the last run we had
-    }
+  // Every new prediction run (sample data until the API is connected).
+  function onRun(next) {
+    if (!next) return;
+    if (!reviewing) run = next;                                        // never swap the data mid-review
+    if (!reviewing) updateButton();
   }
 
   // ---------- The "why" sentence and chart ----------
@@ -159,12 +156,17 @@
     closeOverride();
   }
 
-  function start() {
+  // Start reviewing. firstId (optional) jumps straight to one recommendation,
+  // e.g. when its badge is clicked in the forecast panel.
+  function start(firstId) {
     queue = actionable();
     if (!queue.length) return;
     // most urgent first: earliest effective time, then splits before merges
     queue.sort((p, q) => new Date(p.effective_at) - new Date(q.effective_at) || (p.action === 'split' ? -1 : 1));
+    const pick = typeof firstId === 'string' ? queue.findIndex(r => r.id === firstId) : -1;
+    if (pick > 0) queue.unshift(...queue.splice(pick, 1));             // that one first, the rest after it
     current = 0; reviewing = true; thisReview.length = 0;
+    document.dispatchEvent(new CustomEvent('fircast:review', { detail: { reviewing: true } }));
     $('review-btn').hidden = true;
     $('review-bar').hidden = false;
     $('review-panel').hidden = false;
@@ -178,6 +180,7 @@
 
   function exit() {
     reviewing = false;
+    document.dispatchEvent(new CustomEvent('fircast:review', { detail: { reviewing: false } }));
     $('review-bar').hidden = true;
     $('review-panel').hidden = true;
     FIRMap.exitReview();
@@ -245,7 +248,7 @@
   });
 
   // ---------- Buttons and keys ----------
-  $('review-btn').addEventListener('click', start);
+  $('review-btn').addEventListener('click', () => start());
   $('review-exit').addEventListener('click', exit);
   $('review-back').addEventListener('click', exit);
   $('rv-accept').addEventListener('click', () => decide('accepted'));
@@ -256,6 +259,9 @@
     if (!$('override-form').hidden) { closeOverride(); $('rv-override').focus(); } else exit();
   });
 
-  poll();
-  setInterval(poll, FIRCastAPI.CONFIG.pollSeconds * 1000);
+  // What the forecast panel may use: open review at one recommendation,
+  // and find out whether a recommendation is still waiting for a decision.
+  window.FIRReview = { start, pending: () => actionable().map(r => r.id) };
+
+  FIRCastAPI.subscribe(onRun);
 })();
