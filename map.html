@@ -48,6 +48,10 @@
       <div class="map-head">
         <p class="map-title">UAE region · 7 sectors</p>
         <div class="head-controls">
+          <!-- Review button: shown only when the model has split or merge recommendations (js/map/review.js) -->
+          <button type="button" class="review-btn" id="review-btn" hidden>
+            Review <span class="review-count" id="review-count">0</span>
+          </button>
           <!-- 2D / 3D switch. aria-pressed tells assistive tech which view is on -->
           <div class="seg" role="group" aria-label="View">
             <button type="button" id="view-2d" aria-pressed="true">2D</button>
@@ -100,11 +104,26 @@
         </div>
       </div>
 
-      <!-- Map area: the canvas plus the overlays that sit on top of it -->
+      <!-- Review bar: which recommendation is on screen (review mode only) -->
+      <div class="review-bar" id="review-bar" hidden>
+        <p class="review-step" id="review-step" aria-live="polite"></p>
+        <button type="button" class="btn btn-sm btn-ghost" id="review-exit">Exit review</button>
+      </div>
+
+      <!-- Map area: the canvas plus the overlays that sit on top of it.
+           In review mode it shows two panes side by side: now and proposed. -->
       <div class="map-wrap">
-        <!-- Main map canvas: land, FIR, sectors, airways, waypoints and traffic, redrawn every frame -->
-        <canvas id="geo-map" tabindex="0" role="img"
-          aria-label="Map of the Middle East centred on the UAE, with seven sectors, airways, waypoints and moving aircraft. Arrow keys move the map, plus and minus zoom, 0 resets."></canvas>
+        <div class="pane">
+          <p class="pane-cap" id="cap-now"></p>
+          <!-- Main map canvas: land, FIR, sectors, airways, waypoints and traffic, redrawn every frame -->
+          <canvas id="geo-map" class="map-canvas" tabindex="0" role="img"
+            aria-label="Map of the Middle East centred on the UAE, with seven sectors, airways, waypoints and moving aircraft. Arrow keys move the map, plus and minus zoom, 0 resets."></canvas>
+        </div>
+        <!-- Proposed configuration (review mode only). Same camera as the main map. -->
+        <div class="pane" hidden>
+          <p class="pane-cap" id="cap-after"></p>
+          <canvas id="geo-proposed" class="map-canvas" role="img" aria-label="The same map with the proposed sector configuration."></canvas>
+        </div>
 
         <p class="sector-chip overlay" id="sector-chip" hidden></p>
         <p class="hint overlay" id="hint-3d" hidden>Drag to rotate</p>
@@ -142,6 +161,45 @@
         </aside>
       </div>
 
+      <!-- Review panel (review mode only): why the model recommends this, then accept or override -->
+      <div class="review-panel" id="review-panel" hidden>
+        <div class="why">
+          <p class="why-text" id="why-text"></p>
+          <svg class="why-chart" id="why-chart" viewBox="0 0 560 150" role="img" aria-labelledby="why-text"></svg>
+        </div>
+        <div class="decide" id="decide">
+          <div class="decide-buttons">
+            <button type="button" class="btn btn-sm btn-ghost" id="rv-override">Override</button>
+            <button type="button" class="btn btn-sm" id="rv-accept">Accept</button>
+          </div>
+          <!-- Override needs a reason: these answers show later how often, and why, people disagreed with the model -->
+          <form class="override" id="override-form" hidden>
+            <fieldset>
+              <legend>Why are you overriding?</legend>
+              <div class="chips" id="override-reasons">
+                <label class="chip"><input type="radio" name="reason" value="traffic-differs">Traffic differs from forecast</label>
+                <label class="chip"><input type="radio" name="reason" value="no-controller">No controller available</label>
+                <label class="chip"><input type="radio" name="reason" value="weather-military">Weather or military activity</label>
+                <label class="chip"><input type="radio" name="reason" value="other">Other</label>
+              </div>
+            </fieldset>
+            <label class="note-label" for="override-note">Note (optional)</label>
+            <textarea id="override-note" rows="2" maxlength="300" placeholder="Short reason in your own words"></textarea>
+            <p class="form-error" id="override-error" hidden>Pick a reason first</p>
+            <div class="decide-buttons">
+              <button type="button" class="btn btn-sm btn-ghost" id="ov-cancel">Cancel</button>
+              <button type="submit" class="btn btn-sm">Confirm override</button>
+            </div>
+          </form>
+        </div>
+        <!-- End of the review: what was decided -->
+        <div class="review-done" id="review-done" hidden>
+          <p class="done-title">Review complete</p>
+          <ul class="done-list" id="done-list"></ul>
+          <button type="button" class="btn btn-sm" id="review-back">Back to live map</button>
+        </div>
+      </div>
+
       <!-- Footer: flight level colour key and the simulation speed slider -->
       <div class="map-foot">
         <div class="legend" aria-hidden="true">
@@ -174,8 +232,12 @@
        Order matters: data files first, then the code that uses them. -->
   <script src="data/airspace.js"></script>
   <script src="data/land-region.js"></script>
+  <script src="js/map/geometry.js"></script>
+  <script src="data/sample-recommendations.js"></script>
   <script src="js/map/map.js"></script>
   <script src="js/map/radar-background.js"></script>
+  <script src="js/map/recommendations-api.js"></script>
+  <script src="js/map/review.js"></script>
   <script src="js/shared/nav.js"></script>
 </body>
 </html>

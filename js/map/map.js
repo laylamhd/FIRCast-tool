@@ -11,7 +11,10 @@
 //   - drawing order: sea and land, grid, routes, sectors (as flat shapes or
 //     3D blocks), radar sweep, aircraft, scales and north arrow;
 //   - mouse, touch and keyboard controls, the dropdown, the plane panel;
-//   - the opening air show (a 3D plane with a smoke trail that lands at Dubai).
+//   - the opening air show (a 3D plane with a smoke trail that lands at Dubai);
+//   - review mode: a second canvas shows the proposed sector configuration
+//     beside the current one, with the same camera (section 12, used by
+//     js/map/review.js through window.FIRMap).
 // =====================================================================
 
 
@@ -112,7 +115,8 @@
       return { minLon: Math.min(...lons), maxLon: Math.max(...lons), minLat: Math.min(...lats), maxLat: Math.max(...lats) };
     }
   }
-  const sectors = Object.entries(GCAA.sectors).map(([id, poly]) => new Sector(id, poly, BANDS[id]));
+  // `let`, not `const`: accepting a split or merge replaces this list (section 12).
+  let sectors = Object.entries(GCAA.sectors).map(([id, poly]) => new Sector(id, poly, BANDS[id]));
 
   // =======================================================
   // 3. Airports (for the simulated flights)
@@ -305,8 +309,12 @@
   // tilt 0 = looking straight down (2D). In 3D the camera tilts back
   // (tilt) and turns around the map (yaw).
   const canvas = document.getElementById('geo-map');
-  const ctx = canvas.getContext('2d');
   const $ = id => document.getElementById(id);
+  // Review mode draws the same scene a second time on this canvas (the
+  // proposed configuration). `ctx` is `let` so draw() can be pointed at it.
+  const proposedCanvas = $('geo-proposed');
+  const mainCtx = canvas.getContext('2d'), proposedCtx = proposedCanvas.getContext('2d');
+  let ctx = mainCtx;
   // the map stops at the edges of the Middle East
   const DATA = { minLon: 24.0, maxLon: 72.0, minLat: 8.0, maxLat: 43.0 };
   const HOME = { minLon: 51.4, maxLon: 57.2, minLat: 22.4, maxLat: 26.9 };   // the FIR with a little margin
@@ -378,7 +386,10 @@
     const first = W === 0;
     W = canvas.clientWidth; H = canvas.clientHeight;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    mainCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // the proposed map (review mode) is always the same size as the main one
+    proposedCanvas.width = canvas.width; proposedCanvas.height = canvas.height;
+    proposedCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const home = homeView();
     if (first) Object.assign(view, home);
     clampView();
@@ -420,6 +431,8 @@
   // layers switched on and off from the dropdown
   const layers = { traffic: true, airways: true, waypoints: true, fir: true };
   let hoveredSector = null, hoveredFlight = null, openFlight = null, selected = null;
+  // Review mode (section 12): which sector list to draw, and which ids stay bright.
+  let drawnSectors = null, focusIds = null;
   let openWaypoint = null;                                     // waypoint whose name is shown
 
   function path(points, ft = 0, close = true) {
@@ -540,8 +553,10 @@
   // its floor and ceiling: walls are drawn far-to-near so nearer ones cover farther ones.
   function drawSectors() {
     // When one sector is selected in the dropdown, the others are drawn faded.
-    const alphaOf = s => (selected && s !== selected ? 0.35 : 1);
-    const blocks = view.tilt >= 0.02 ? sectors.filter(s => s.rise > 0.01) : [];
+    // In review mode, the sectors the recommendation is about stay bright.
+    const list = drawnSectors || sectors;
+    const alphaOf = s => ((selected && s !== selected) || (focusIds && !focusIds.has(s.id)) ? 0.35 : 1);
+    const blocks = view.tilt >= 0.02 ? list.filter(s => s.rise > 0.01) : [];
 
     // floors: faint outline at the bottom of each block
     blocks.forEach(s => {
@@ -577,7 +592,7 @@
     }));
 
     // roofs (for a flat sector this is its shape on the ground)
-    const roofs = [...sectors].sort((p, q) => project(q.lon, q.lat, ceilFt(q))[2] - project(p.lon, p.lat, ceilFt(p))[2]);
+    const roofs = [...list].sort((p, q) => project(q.lon, q.lat, ceilFt(q))[2] - project(p.lon, p.lat, ceilFt(p))[2]);
     roofs.forEach(s => {
       const [r, g, b] = s.rgb.map(Math.round);
       path(s.poly, ceilFt(s));
@@ -590,7 +605,7 @@
 
     // labels: name and altitude band
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    sectors.forEach(s => {
+    list.forEach(s => {
       const [x, y] = project(s.lon, s.lat, ceilFt(s));
       ctx.globalAlpha = alphaOf(s);
       ctx.fillStyle = `rgb(${INK})`;
@@ -904,7 +919,14 @@
   const tip = $('geo-tip');
   let pointer = null, drag = null, pinch = null;
   const touches = new Map();                                   // active pointers, for pinch zoom
-  const local = e => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  // Pointer position inside whichever map canvas the event came from. Both
+  // canvases share one camera, so a point means the same place on either.
+  let hoverEl = canvas;                                        // canvas the mouse is over (for the tooltip)
+  const local = e => {
+    const el = e.currentTarget instanceof HTMLCanvasElement ? e.currentTarget : canvas;
+    const r = el.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+  };
 
   function insideScreen(pts, x, y) {                           // ray casting on screen points
     let hit = false;
@@ -938,13 +960,15 @@
     const [x, y] = pointer;
 
     hoveredFlight = flightAt(x, y);
-    hoveredSector = hoveredFlight ? null : sectorAt(x, y);
-    canvas.classList.toggle('on-plane', !!hoveredFlight || !!waypointAt(x, y));   // pointer cursor on things you can click
+    hoveredSector = hoveredFlight || review ? null : sectorAt(x, y);   // no sector tooltip while reviewing
+    hoverEl.classList.toggle('on-plane', !!hoveredFlight || !!waypointAt(x, y));   // pointer cursor on things you can click
     if (hoveredSector) {
       const s = hoveredSector;
       tip.textContent = `${s.band} · ${s.count} aircraft · ${s.status}`;   // name is on the map
-      tip.style.left = Math.min(W - 110, Math.max(110, x)) + 'px';
-      tip.style.top = Math.max(40, y) + 'px';
+      // the tooltip lives in .map-wrap, so add where this canvas sits inside it
+      const wrap = hoverEl.closest('.map-wrap').getBoundingClientRect(), r = hoverEl.getBoundingClientRect();
+      tip.style.left = (r.left - wrap.left) + Math.min(W - 110, Math.max(110, x)) + 'px';
+      tip.style.top = (r.top - wrap.top) + Math.max(40, y) + 'px';
       tip.hidden = false;
     } else tip.hidden = true;
   }
@@ -963,48 +987,13 @@
     return { d: Math.hypot(a[0] - b[0], a[1] - b[1]), x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2 };
   };
 
-  // Pointer pressed: start a drag (one finger/mouse) or a pinch (two fingers).
-  canvas.addEventListener('pointerdown', e => {
-    anim = null;
-    const [x, y] = local(e);
-    touches.set(e.pointerId, [x, y]);
-    canvas.setPointerCapture(e.pointerId);
-    tip.hidden = true;
-    if (touches.size === 2) { drag = null; pinch = pinchInfo(); return; }   // two fingers: pinch to zoom
-    drag = { x, y, lon: view.lon, lat: view.lat, tilt: view.tilt, yaw: view.yaw, moved: false, touch: e.pointerType !== 'mouse' };
-    canvas.classList.add('dragging');
-  });
-  // Pointer moves: pinch-zoom, drag (pan in 2D, rotate/tilt in 3D) or just hover.
-  canvas.addEventListener('pointermove', e => {
-    const [x, y] = local(e);
-    if (touches.has(e.pointerId)) touches.set(e.pointerId, [x, y]);
-    if (pinch && touches.size === 2) {
-      const now = pinchInfo();
-      zoomAt(now.d / pinch.d, now.x, now.y);
-      pinch = now;
-      return;
-    }
-    pointer = [x, y];
-    if (drag) {
-      const dx = x - drag.x, dy = y - drag.y;
-      if (Math.hypot(dx, dy) > 4) drag.moved = true;
-      if (mode === '3d') {                                     // 3D: drag turns and tilts the camera
-        view.yaw = drag.yaw + dx * 0.006;
-        view.tilt = Math.min(1.25, Math.max(0.35, drag.tilt - dy * 0.004));
-      } else {                                                 // 2D: drag moves the map
-        view.lon = drag.lon - dx / (K * view.scale);
-        view.lat = drag.lat + dy / view.scale;
-        clampView();
-      }
-    } else if (e.pointerType === 'mouse') updateHover();
-  });
   // Pointer released: if it barely moved, treat it as a click on a plane or waypoint.
   function endPointer(e) {
     touches.delete(e.pointerId);
     if (touches.size < 2) pinch = null;
     const wasClick = drag && !drag.moved;
     const radius = drag && drag.touch ? 24 : 14;               // fingers need a bigger target
-    drag = null; canvas.classList.remove('dragging');
+    drag = null; canvas.classList.remove('dragging'); proposedCanvas.classList.remove('dragging');
     if (!wasClick || e.type === 'pointercancel') return;
     const [x, y] = local(e);
     const f = flightAt(x, y, radius);                          // click a plane: open its details
@@ -1013,23 +1002,61 @@
     const wp = waypointAt(x, y);                               // click a waypoint: show its name (click again to hide)
     openWaypoint = wp && wp !== openWaypoint ? wp : null;
   }
-  // Finish a drag, pinch or click.
-  canvas.addEventListener('pointerup', endPointer);
-  canvas.addEventListener('pointercancel', endPointer);
-  // Pointer leaves the map: clear the hover state and tooltip.
-  canvas.addEventListener('pointerleave', () => {
-    if (drag) return;
-    pointer = null; hoveredFlight = null; hoveredSector = null;
-    tip.hidden = true;
-  });
+  // The same controls work on both map canvases (the second one only shows in review mode).
+  [canvas, proposedCanvas].forEach(el => {
+    // Pointer pressed: start a drag (one finger/mouse) or a pinch (two fingers).
+    el.addEventListener('pointerdown', e => {
+      anim = null;
+      const [x, y] = local(e);
+      touches.set(e.pointerId, [x, y]);
+      e.currentTarget.setPointerCapture(e.pointerId);
+      tip.hidden = true;
+      if (touches.size === 2) { drag = null; pinch = pinchInfo(); return; }   // two fingers: pinch to zoom
+      drag = { x, y, lon: view.lon, lat: view.lat, tilt: view.tilt, yaw: view.yaw, moved: false, touch: e.pointerType !== 'mouse' };
+      e.currentTarget.classList.add('dragging');
+    });
+    // Pointer moves: pinch-zoom, drag (pan in 2D, rotate/tilt in 3D) or just hover.
+    el.addEventListener('pointermove', e => {
+      const [x, y] = local(e);
+      if (touches.has(e.pointerId)) touches.set(e.pointerId, [x, y]);
+      if (pinch && touches.size === 2) {
+        const now = pinchInfo();
+        zoomAt(now.d / pinch.d, now.x, now.y);
+        pinch = now;
+        return;
+      }
+      pointer = [x, y]; hoverEl = e.currentTarget;
+      if (drag) {
+        const dx = x - drag.x, dy = y - drag.y;
+        if (Math.hypot(dx, dy) > 4) drag.moved = true;
+        if (mode === '3d') {                                     // 3D: drag turns and tilts the camera
+          view.yaw = drag.yaw + dx * 0.006;
+          view.tilt = Math.min(1.25, Math.max(0.35, drag.tilt - dy * 0.004));
+        } else {                                                 // 2D: drag moves the map
+          view.lon = drag.lon - dx / (K * view.scale);
+          view.lat = drag.lat + dy / view.scale;
+          clampView();
+        }
+      } else if (e.pointerType === 'mouse') updateHover();
+    });
+    // Finish a drag, pinch or click.
+    el.addEventListener('pointerup', endPointer);
+    el.addEventListener('pointercancel', endPointer);
+    // Pointer leaves the map: clear the hover state and tooltip.
+    el.addEventListener('pointerleave', () => {
+      if (drag) return;
+      pointer = null; hoveredFlight = null; hoveredSector = null;
+      tip.hidden = true;
+    });
 
-  // Mouse wheel / trackpad zooms around the pointer (preventDefault stops the page scrolling).
-  canvas.addEventListener('wheel', e => {
-    e.preventDefault();
-    zoomAt(Math.exp(-e.deltaY * 0.0015), ...local(e));
-  }, { passive: false });
-  // Double-click zooms in.
-  canvas.addEventListener('dblclick', e => zoomAt(1.6, ...local(e)));
+    // Mouse wheel / trackpad zooms around the pointer (preventDefault stops the page scrolling).
+    el.addEventListener('wheel', e => {
+      e.preventDefault();
+      zoomAt(Math.exp(-e.deltaY * 0.0015), ...local(e));
+    }, { passive: false });
+    // Double-click zooms in.
+    el.addEventListener('dblclick', e => zoomAt(1.6, ...local(e)));
+  });
 
   // Keyboard: arrows move the map, + and - zoom, 0 resets, Escape closes things.
   canvas.addEventListener('keydown', e => {
@@ -1119,6 +1146,107 @@
   });
 
   // =======================================================
+  // 12. Review mode and sector configurations
+  // =======================================================
+  // js/map/review.js runs the review screens; this section does the map side:
+  // show the proposed configuration beside the current one, and apply it to
+  // the live map when the supervisor accepts.
+  const LEVEL_INDEX = { normal: 0, busy: 1, overloaded: 2 };
+  let review = null;                     // { now: Set of ids, after: Set of ids, list: sectors to draw on the right }
+
+  // Turn the proposed sectors from the API into Sector objects. Sectors the
+  // recommendation does not touch are the live ones, so their colours keep updating.
+  function proposedList(rec) {
+    const fresh = rec.proposed.map(p => {
+      const s = new Sector(p.id, p.polygon, [p.floor, p.ceiling]);
+      s.level = LEVEL_INDEX[p.predicted_level] ?? 0;
+      s.rgb = [...LEVEL_RGB[s.level]];
+      return s;
+    });
+    return sectors.filter(s => !rec.sectors.includes(s.id)).concat(fresh);
+  }
+
+  // Draw the same frame again on the right-hand canvas, with the proposed sectors.
+  function drawProposed() {
+    const keep = focusIds;
+    ctx = proposedCtx; drawnSectors = review.list; focusIds = review.after;
+    draw();
+    ctx = mainCtx; drawnSectors = null; focusIds = keep;
+  }
+
+  // Frame the sectors a recommendation is about, with room around them.
+  function frameIds(ids, ms = 700) {
+    const polys = sectors.filter(s => ids.includes(s.id)).map(s => s.poly).flat();
+    if (!polys.length) return;
+    const lons = polys.map(p => p[0]), lats = polys.map(p => p[1]);
+    const b = { minLon: Math.min(...lons), maxLon: Math.max(...lons), minLat: Math.min(...lats), maxLat: Math.max(...lats) };
+    const scale = Math.min((W * 0.62) / ((b.maxLon - b.minLon) * K), (H * 0.62) / (b.maxLat - b.minLat));
+    flyTo({ lon: (b.minLon + b.maxLon) / 2, lat: (b.minLat + b.maxLat) / 2, scale, ...VIEW_2D }, ms);
+  }
+
+  // Show one recommendation: current sectors on the left, proposed on the right.
+  function showRecommendation(rec) {
+    review = { now: new Set(rec.sectors), after: new Set(rec.proposed.map(p => p.id)), list: proposedList(rec) };
+    focusIds = review.now;
+    frameIds(rec.sectors);
+  }
+
+  // Enter review mode: 2D only, nothing selected, the map split into two halves.
+  function enterReview(rec) {
+    closePanel(); setMenu(false);
+    selected = null; menuPanel.elements.sector.value = 'all'; updateChip();
+    mode = '2d';
+    $('view-2d').setAttribute('aria-pressed', 'true'); $('view-3d').setAttribute('aria-pressed', 'false');
+    $('hint-3d').hidden = true;
+    document.querySelector('.map-card').classList.add('is-reviewing');
+    proposedCanvas.closest('.pane').hidden = false;
+    resize();                                                  // the main canvas is now half as wide
+    showRecommendation(rec);
+  }
+
+  // Leave review mode and go back to the normal full-width map.
+  function exitReview() {
+    review = null; focusIds = null;
+    document.querySelector('.map-card').classList.remove('is-reviewing');
+    proposedCanvas.closest('.pane').hidden = true;
+    resize();
+    flyTo(defaultView());
+  }
+
+  // The supervisor accepted: the proposed sectors replace the old ones on the
+  // live map. New sectors inherit nothing but their shape and vertical limits;
+  // their colour comes from the live traffic like every other sector.
+  function applyConfiguration(rec) {
+    const fresh = rec.proposed.map(p => new Sector(p.id, p.polygon, [p.floor, p.ceiling]));
+    sectors = sectors.filter(s => !rec.sectors.includes(s.id)).concat(fresh)
+      .sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }));
+    step(0);                                                   // count the traffic in the new sectors now
+    sectors.forEach(s => { s.rgb = [...LEVEL_RGB[s.level]]; });
+    buildSectorChips();
+    document.querySelector('.map-title').textContent = `UAE region · ${sectors.length} sectors`;
+  }
+
+  // Rebuild the sector radio chips in the dropdown from the current sector list.
+  function buildSectorChips() {
+    const box = menuPanel.querySelector('.chips');
+    box.innerHTML = '';
+    ['all', ...sectors.map(s => s.id)].forEach(id => {
+      const label = document.createElement('label');
+      label.className = 'chip';
+      const input = document.createElement('input');
+      input.type = 'radio'; input.name = 'sector'; input.value = id; input.checked = id === 'all';
+      label.append(input, id === 'all' ? 'All' : id);
+      box.append(label);
+    });
+  }
+
+  // What js/map/review.js may use. Nothing else on the page touches the map's insides.
+  window.FIRMap = {
+    sectorIds: () => sectors.map(s => s.id),
+    enterReview, showRecommendation, exitReview, applyConfiguration
+  };
+
+  // =======================================================
   // 10. Animation loop
   // =======================================================
   let last = performance.now();
@@ -1133,6 +1261,7 @@
     runAnim(now);
     updateHover();
     draw();
+    if (review) drawProposed();
     requestAnimationFrame(frame);
   }
   setInterval(() => { fillPanel(); updateChip(); }, 250);  // panel and chip refresh 4x a second

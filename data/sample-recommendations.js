@@ -1,0 +1,60 @@
+// =====================================================================
+// FIRCast · data/sample-recommendations.js
+// Used on: map.html, only while FIRCastAPI.CONFIG.baseUrl is null.
+// Needs (load first): data/airspace.js (AIRSPACE_DATA), js/map/geometry.js.
+//
+// A made-up prediction run in exactly the format the real model's API will
+// return (see docs/API.md). Nothing here is a real prediction: the numbers
+// are invented to show one split, one merge and the "keep" case.
+//
+// Complexity is a placeholder index from 0 to 1, and the limits (0.30 and
+// 0.75) are placeholders too. The real scale and limits will come from the
+// model and from the sector capacity values agreed with the GCAA.
+// =====================================================================
+
+function buildSampleRecommendations(now) {
+  'use strict';
+  const t0 = new Date(Math.floor(now.getTime() / 60000) * 60000);       // whole minute
+  const at = min => new Date(t0.getTime() + min * 60000).toISOString();
+  const S = AIRSPACE_DATA.sectors;
+  const [s6a, s6b] = FIRGeometry.splitPolygon(S.S6);
+
+  return {
+    generated_at: at(0),
+    model_version: 'sample-0',
+    step_min: 5,                       // one forecast value every 5 minutes...
+    horizon_min: 60,                   // ...for the next 60 minutes (13 values, starting now)
+    thresholds: { low: 0.30, high: 0.75 },
+    recommendations: [
+      {
+        id: 'sample-split-S6',
+        action: 'split',
+        sectors: ['S6'],
+        effective_at: at(20),
+        forecast: { S6: [0.52, 0.56, 0.61, 0.67, 0.73, 0.79, 0.86, 0.90, 0.88, 0.84, 0.80, 0.77, 0.74] },
+        proposed: [
+          { id: 'S6a', polygon: s6a, floor: 0, ceiling: 460, predicted_level: 'busy' },
+          { id: 'S6b', polygon: s6b, floor: 0, ceiling: 460, predicted_level: 'busy' }
+        ]
+      },
+      {
+        id: 'sample-merge-S1-S7',
+        action: 'merge',
+        sectors: ['S1', 'S7'],
+        effective_at: at(0),
+        forecast: {
+          S1: [0.22, 0.20, 0.19, 0.18, 0.18, 0.17, 0.19, 0.20, 0.21, 0.22, 0.24, 0.25, 0.26],
+          S7: [0.27, 0.26, 0.25, 0.24, 0.22, 0.21, 0.21, 0.22, 0.23, 0.25, 0.27, 0.28, 0.29]
+        },
+        proposed: [
+          { id: 'S1+S7', polygon: FIRGeometry.mergePolygons(S.S1, S.S7), floor: 50, ceiling: 460, predicted_level: 'normal' }
+        ]
+      },
+      {
+        id: 'sample-keep',
+        action: 'keep',
+        sectors: ['S2', 'S3', 'S4', 'S5']
+      }
+    ]
+  };
+}

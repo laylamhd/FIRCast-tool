@@ -133,14 +133,14 @@ h1 {
 
 /* ---- Map area and overlays ---- */
 .map-wrap { position: relative; border-radius: 16px; overflow: hidden; }
-#geo-map {
+.map-canvas {
   display: block; width: 100%;
   height: max(540px, calc(100vh - 250px));
   cursor: grab;
   touch-action: none;                    /* dragging is handled in JavaScript */
 }
-#geo-map.dragging { cursor: grabbing; }
-#geo-map.on-plane { cursor: pointer; }
+.map-canvas.dragging { cursor: grabbing; }
+.map-canvas.on-plane { cursor: pointer; }
 
 .overlay { position: absolute; z-index: 2; }
 /* flight level colour key (in the legend under the map) */
@@ -326,7 +326,7 @@ h1 {
 @media (max-width: 640px) {
   h1 { font-size: 36px; line-height: 40px; margin-bottom: 20px; }
   .map-card { padding: 12px; border-radius: 16px; }
-  #geo-map { height: 64vh; }
+  .map-canvas { height: 64vh; }
   .plane-panel {                         /* phones: panel becomes a bottom sheet */
     top: auto; bottom: 12px; left: 12px; right: 12px; width: auto;
     max-height: 72%;
@@ -343,4 +343,120 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .plane-panel, .btn, .nav-link, .seg button, .menu-btn svg, .chip, .switch, .switch::before, .skip, .hint, .pp-bar i { transition: none; }
   .menu-panel:not([hidden]) { animation: none; }
+}
+
+/* =====================================================================
+   Review mode (js/map/review.js)
+   The supervisor reviews each split / merge recommendation on two maps
+   side by side (now | proposed), reads why, then accepts or overrides.
+   ===================================================================== */
+
+/* "Review 2" button in the map header: navy pill with a small orange count. */
+.review-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 8px 0 16px;
+  border: 0; border-radius: 9999px; cursor: pointer;
+  background: var(--ink); color: var(--sweet-corn);
+  font: 700 14px/1 var(--font-ui);
+  transition: transform 300ms var(--ease);
+}
+.review-btn:hover { transform: translateY(-1px); }
+.review-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.review-btn[hidden] { display: none; }
+.review-count {
+  display: inline-grid; place-items: center;
+  min-width: 26px; height: 26px; padding: 0 6px; border-radius: 9999px;
+  background: var(--spicy-orange); color: var(--sweet-corn);
+  font-size: 13px;
+}
+
+/* While reviewing: no 2D/3D switch, no menu, no review button (review is 2D only). */
+.is-reviewing .seg, .is-reviewing .menu, .is-reviewing .review-btn { display: none; }
+
+/* Bar above the maps: "Recommendation 1 of 2 · Split S6 in 20 min" + Exit. */
+.review-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.review-bar[hidden] { display: none; }
+.review-step { font-size: 15px; line-height: 22px; font-weight: 600; }
+.review-step .of { color: var(--muted); font-weight: 500; margin-right: 8px; }
+/* Action tags: red tint for split, blue tint for merge. */
+.act {
+  display: inline-block; margin-right: 6px; padding: 2px 8px; border-radius: 6px;
+  font-size: 12px; line-height: 16px; font-weight: 700;
+}
+.act-split { background: rgba(221, 17, 10, 0.12); color: #A60D07; }
+.act-merge { background: rgba(132, 180, 230, 0.45); color: var(--ink); }
+.btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.btn-ghost:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
+button.btn { border: 0; cursor: pointer; font-family: var(--font-ui); }
+
+/* The map area: one pane normally, two side by side while reviewing. */
+.pane { position: relative; min-width: 0; }
+.pane[hidden] { display: none; }
+.pane-cap { display: none; }
+.is-reviewing .map-wrap {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  overflow: visible;
+}
+.is-reviewing .pane { border-radius: 16px; overflow: hidden; }
+.is-reviewing .map-canvas { height: max(420px, calc(100vh - 430px)); }
+/* Caption chip at the top left of each pane: "Now: 1 controller on S6". */
+.is-reviewing .pane-cap {
+  display: block; position: absolute; z-index: 2; left: 12px; top: 12px;
+  padding: 4px 12px; border-radius: 9999px;
+  background: rgba(251, 244, 219, 0.95); box-shadow: var(--lift-small);
+  font-size: 13px; line-height: 18px; font-weight: 600;
+  pointer-events: none;
+}
+.pane-cap b { font-weight: 800; }
+
+/* Panel under the maps: the reason + forecast chart, then the decision. */
+.review-panel {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: end;
+}
+.review-panel[hidden] { display: none; }
+.why { display: grid; gap: 8px; }
+.why[hidden] { display: none; }
+.why-text { font-size: 15px; line-height: 22px; font-weight: 600; max-width: 62ch; }
+.why-chart { width: 100%; max-width: 640px; height: auto; display: block; }
+.why-chart text { font-family: var(--font-ui); font-size: 11px; font-weight: 600; fill: var(--muted); }
+.decide { display: grid; gap: 12px; justify-items: end; }
+.decide[hidden] { display: none; }
+.decide-buttons { display: flex; gap: 8px; }
+.decide-buttons[hidden] { display: none; }
+.override { display: grid; gap: 8px; width: min(440px, 100%); }
+.override[hidden] { display: none; }
+.override fieldset { border: 0; display: grid; gap: 8px; }
+.override legend { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.override .chips { grid-template-columns: 1fr 1fr; }
+.override .chip { height: auto; min-height: 34px; padding: 6px 12px; text-align: center; line-height: 1.25; }
+.note-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.override textarea {
+  width: 100%; resize: vertical; padding: 8px 12px;
+  border: 1.5px solid var(--line); border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6); color: var(--ink);
+  font: 500 14px/20px var(--font-ui);
+}
+.override textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.form-error { font-size: 13px; font-weight: 600; color: #A60D07; }
+.form-error[hidden] { display: none; }
+.override .decide-buttons { justify-content: flex-end; }
+
+/* End of review: list of decisions and the way back. */
+.review-done { grid-column: 1 / -1; display: grid; justify-items: center; gap: 8px; padding: 8px 0; }
+.review-done[hidden] { display: none; }
+.done-title { font: 800 22px/28px var(--font-display); font-variation-settings: var(--display-opsz); }
+.done-list { list-style: none; display: grid; gap: 4px; text-align: center; font-size: 14px; color: var(--muted); }
+.done-list b { color: var(--ink); }
+
+@media (max-width: 900px) {
+  .is-reviewing .map-wrap { grid-template-columns: 1fr; }
+  .is-reviewing .map-canvas { height: 42vh; }
+  .review-panel { grid-template-columns: 1fr; }
+  .decide { justify-items: stretch; }
+  .decide-buttons { justify-content: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .review-btn { transition: none; }
 }

@@ -25,7 +25,8 @@ fircast-web/
 ├── data/
 │   ├── airspace.js            FIR, routes, waypoints, sectors and flight plans
 │   ├── land-home.js           Coastlines for the small map on the home page
-│   └── land-region.js         Coastlines for the full map (Middle East)
+│   ├── land-region.js         Coastlines for the full map (Middle East)
+│   └── sample-recommendations.js  Made-up model output, used until the API exists
 ├── js/
 │   ├── shared/
 │   │   └── nav.js             Shrinks the nav bar on scroll (both pages)
@@ -38,9 +39,13 @@ fircast-web/
 │   │   └── tagline.js         Section 4 words, runway lights and landing plane
 │   └── map/
 │       ├── map.js             The full map: projection, 2D/3D, traffic, controls, air show
+│       ├── geometry.js        Split / merge sector outlines (for the sample data)
+│       ├── recommendations-api.js  The only code that talks to the model's server
+│       ├── review.js          Review mode: compare, explain, accept or override
 │       └── radar-background.js  Faint radar sweep behind the page
 └── docs/
-    └── HOW-IT-WORKS.md        Colours, animations and the map explained for the team
+    ├── HOW-IT-WORKS.md        Colours, animations and the map explained for the team
+    └── API.md                 Format of the recommendations and decisions endpoints
 ```
 
 The layout follows a common convention: one folder per file type, then one file per page or feature inside it. Shared code lives in `css/base.css` and `js/shared/`, and each page loads only the files it needs. Every file starts with a header comment saying what it does, which page uses it and what must be loaded before it.
@@ -52,6 +57,12 @@ Each HTML page loads `css/base.css` first and then its own stylesheet, so page s
 All colours, fonts, shadows and the main easing curve are CSS custom properties defined once in `:root` in `base.css`. Change a colour there and it changes everywhere. Where JavaScript draws on a canvas it uses the same hex values; those are listed at the top of each script.
 
 For a walk-through of the animations, the background story and the map projection, read [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md).
+
+## Review mode
+
+When the model recommends a split or a merge, a **Review** button with a count appears above the map. Review mode takes the recommendations one at a time, most urgent first. Each one shows the current sectors and the proposed sectors on two maps side by side (they share one camera, so panning one moves both), a sentence on why, and the forecast chart behind it. The supervisor accepts, and the live map switches to the new configuration, or overrides with a required reason. "Keep" recommendations need no decision and are only listed.
+
+Until the model is connected, the recommendations are sample data. [docs/API.md](docs/API.md) describes the format the model's server must return and how to switch the page over to it.
 
 ## Course topics covered
 
