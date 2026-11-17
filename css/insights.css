@@ -28,34 +28,11 @@ h1 {
 /* ---- Timeline page: the route straight on the page, centred ---- */
 .timeline-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .route-area { width: min(1100px, 100%); }
-.route-area.is-vertical { width: min(360px, 100%); }
 .route-box { position: relative; margin-top: 8px; }
 .route { display: block; width: 100%; height: auto; overflow: visible; }
 /* The route: round dark-grey dots */
 .route-line { fill: none; stroke: #4B5563; stroke-width: 3.5; stroke-dasharray: 0.1 10; stroke-linecap: round; }
 
-/* Direction dropdown, top right of the page */
-.dir-menu { position: absolute; top: 104px; right: 24px; z-index: 5; }
-.dir-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 40px; padding: 0 14px 0 16px; border: 0; border-radius: 9999px; cursor: pointer;
-  background: var(--sweet-corn); color: var(--ink); box-shadow: var(--lift-small);
-  font: 700 14px/1 var(--font-ui);
-}
-.dir-btn svg { transition: transform 300ms var(--ease); }
-.dir-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
-.dir-list {
-  position: absolute; right: 0; top: 48px; min-width: 170px;
-  display: grid; gap: 2px; padding: 6px; border-radius: 16px;
-  background: var(--sweet-corn); box-shadow: var(--lift-small);
-}
-.dir-list[hidden] { display: none; }
-.dir-list button {
-  text-align: left; border: 0; border-radius: 10px; padding: 10px 12px; cursor: pointer;
-  background: transparent; color: var(--ink); font: 700 14px/1 var(--font-ui);
-}
-.dir-list button:hover { background: rgba(19, 35, 58, 0.07); }
-.dir-list button[aria-checked="true"] { background: var(--ink); color: var(--sweet-corn); }
 /* Waypoints: the map's triangle. Hover and focus fill it navy; future months are faded. */
 .wp { cursor: pointer; outline: none; }
 .wp .hit { fill: transparent; }
@@ -135,12 +112,12 @@ h1 {
 }
 @media (max-width: 640px) {
   h1 { font-size: 36px; line-height: 40px; }
-  .dir-menu { display: none; }                   /* always vertical on phones */
-  .route-area, .route-area.is-vertical { width: 100%; }
+  .route-box { overflow-x: auto; padding: 40px 0 8px; margin-top: -32px; }   /* the route keeps its size and scrolls sideways */
+  .route { min-width: 760px; }
   .month-top { grid-template-columns: 1fr auto; }
   .month-title { grid-column: 1 / -1; grid-row: 1; }
   .stat-card { padding: 16px; border-radius: 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .dir-btn svg, .wp .tri, .step-btn { transition: none; }
+  .wp .tri, .step-btn { transition: none; }
 }

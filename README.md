@@ -50,7 +50,7 @@ fircast-web/
 │   │   └── forecast-panel.js  Hideable panel: one sector's forecast for the next hour
 │   └── insights/
 │       ├── insights-api.js    The only code that fetches monthly statistics
-│       ├── timeline.js        The 12-month route (horizontal or vertical)
+│       ├── timeline.js        The 12-month route
 │       ├── month.js           Fills one month's statistics page
 │       └── charts.js          Small SVG charts used on the month page
 └── docs/
@@ -76,7 +76,7 @@ The **Forecast** button in the map header shows or hides a panel beside the map.
 
 A temporary **Insights** tab, next to Map, for the research and development team. Once login exists, only R&D will see it.
 
-`insights.html` shows the year as a dotted flight route drawn straight on the page, with twelve waypoints, one per month. A bigger waypoint means more flights per day that month, the orange plane marks the latest month, and months that haven't happened yet are faded. A dropdown at the top right switches between horizontal (the default) and vertical; phones are always vertical. Clicking a month opens `insights-month.html?month=YYYY-MM`, with four cards: traffic, sectors, model accuracy and recommendations. Each has a few figures with the change from last month, and one chart. All numbers are sample data until the API exists (see [docs/API.md](docs/API.md)).
+`insights.html` shows the year as a dotted flight route drawn straight on the page, with twelve waypoints, one per month. A bigger waypoint means more flights per day that month, the orange plane marks the latest month, and months that haven't happened yet are faded. The route always runs left to right; on phones it scrolls sideways. Clicking a month opens `insights-month.html?month=YYYY-MM`, with four cards: traffic, sectors, model accuracy and recommendations. Each has a few figures with the change from last month, and one chart. All numbers are sample data until the API exists (see [docs/API.md](docs/API.md)).
 
 ## Review mode
 

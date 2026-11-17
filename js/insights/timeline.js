@@ -8,8 +8,8 @@
 //   - Months with data are links to insights-month.html?month=YYYY-MM.
 //     Months that haven't happened yet are faded and can't be clicked.
 //   - The orange plane (the map's plane shape) sits on the latest month.
-//   - Horizontal (the default, every time the page opens) or vertical, from
-//     the dropdown at the top right. On narrow screens it is always vertical.
+//   - The route always runs left to right. On narrow screens it keeps its
+//     size and the box scrolls sideways (see .route-box in insights.css).
 // =====================================================================
 
 (() => {
@@ -19,10 +19,8 @@
   const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const PLANE = 'M1 0 L0.8 0.09 L0.2 0.11 L-0.15 0.9 L-0.35 0.9 L-0.2 0.11 L-0.65 0.09 L-0.85 0.42 L-1 0.42 L-0.92 0 L-1 -0.42 L-0.85 -0.42 L-0.65 -0.09 L-0.2 -0.11 L-0.35 -0.9 L-0.15 -0.9 L0.2 -0.11 L0.8 -0.09 Z';
   const NS = 'http://www.w3.org/2000/svg';
-  const narrow = window.matchMedia('(max-width: 640px)');
 
   let year = null;
-  let direction = 'h';                                                 // horizontal by default
 
   // Make an SVG element with attributes.
   function el(tag, attrs, parent) {
@@ -32,13 +30,12 @@
     return node;
   }
 
-  // Positions of the 12 waypoints along a gentle arc (or a gentle S downwards).
-  function layout(h) {
-    const W = h ? 920 : 260, H = h ? 230 : 820;
+  // Positions of the 12 waypoints along a gentle arc.
+  function layout() {
+    const W = 920, H = 230;
     const pts = SHORT.map((_, i) => {
       const t = i / 11;
-      return h ? [50 + t * (W - 100), 130 - Math.sin(t * Math.PI) * 60]
-               : [90 + Math.sin(t * Math.PI) * 36, 40 + t * (H - 80)];
+      return [50 + t * (W - 100), 130 - Math.sin(t * Math.PI) * 60];
     });
     return { W, H, pts };
   }
@@ -55,9 +52,7 @@
   }
 
   function render() {
-    const h = direction === 'h' && !narrow.matches;
-    $('route-area').classList.toggle('is-vertical', !h);
-    const { W, H, pts } = layout(h);
+    const { W, H, pts } = layout();
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.innerHTML = '';
     el('path', { d: curve(pts), class: 'route-line' }, svg);
@@ -78,14 +73,12 @@
         : el('g', { class: 'wp is-future', role: 'listitem', 'aria-label': `${name}: no data yet` }, svg);
       el('circle', { cx: x, cy: y, r: 30, class: 'hit' }, g);                                // a big, easy click target
       el('path', { class: 'tri', d: `M${x} ${y - r} L${x + r * 0.9} ${y + r * 0.62} L${x - r * 0.9} ${y + r * 0.62} Z` }, g);
-      const label = el('text', h
-        ? { x, y: y + r + 24, 'text-anchor': 'middle', class: 'wp-label' }
-        : { x: x + r + 16, y: y + 5, class: 'wp-label' }, g);
-      label.textContent = h ? SHORT[i] : name;
+      const label = el('text', { x, y: y + r + 24, 'text-anchor': 'middle', class: 'wp-label' }, g);
+      label.textContent = SHORT[i];
       if (i === latest) {                                              // the plane sits on the latest month
         const next = pts[Math.min(11, i + 1)], prev = pts[Math.max(0, i - 1)];
         const ang = (Math.atan2(next[1] - prev[1], next[0] - prev[0]) * 180) / Math.PI;
-        const [ox, oy] = h ? [0, -r - 22] : [-r - 22, 0];
+        const [ox, oy] = [0, -r - 22];
         const plane = el('g', { transform: `translate(${x + ox},${y + oy}) rotate(${ang}) scale(14)`, class: 'plane' }, g);
         el('path', { d: PLANE }, plane);
       }
@@ -107,27 +100,6 @@
     tip.hidden = false;
   }
   function hideTip() { tip.hidden = true; }
-
-  // ---------- Direction dropdown ----------
-  const menuBtn = $('dir-btn'), menu = $('dir-list');
-  function setMenu(open) {
-    menu.hidden = !open;
-    menuBtn.setAttribute('aria-expanded', String(open));
-    if (open) menu.querySelector('[aria-checked="true"]').focus();
-  }
-  function setDirection(d) {
-    direction = d;
-    menu.querySelectorAll('[data-dir]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.dir === d)));
-    $('dir-label').textContent = d === 'h' ? 'Horizontal' : 'Vertical';
-    setMenu(false);
-    menuBtn.focus();
-    render();
-  }
-  menuBtn.addEventListener('click', () => setMenu(menu.hidden));
-  menu.querySelectorAll('[data-dir]').forEach(b => b.addEventListener('click', () => setDirection(b.dataset.dir)));
-  document.addEventListener('pointerdown', e => { if (!menu.hidden && !$('dir-menu').contains(e.target)) setMenu(false); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { setMenu(false); menuBtn.focus(); } });
-  narrow.addEventListener('change', render);
 
   const thisYear = new Date().getUTCFullYear();
   FIRCastInsights.getYear(thisYear).then(data => {
