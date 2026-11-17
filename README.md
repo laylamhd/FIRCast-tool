@@ -50,6 +50,7 @@ fircast-web/
 │   │   └── forecast-panel.js  Hideable panel: one sector's forecast for the next hour
 │   └── insights/
 │       ├── insights-api.js    The only code that fetches monthly statistics
+│       ├── year-dial.js       The year picker: years on a half-circle that snaps
 │       ├── timeline.js        The 12-month route
 │       ├── month.js           Fills one month's statistics page
 │       └── charts.js          Small SVG charts used on the month page
@@ -76,7 +77,7 @@ The **Forecast** button in the map header shows or hides a panel beside the map.
 
 A temporary **Insights** tab, next to Map, for the research and development team. Once login exists, only R&D will see it.
 
-`insights.html` shows the year as a dotted flight route drawn straight on the page, with twelve waypoints, one per month. A bigger waypoint means more flights per day that month, the orange plane marks the latest month, and months that haven't happened yet are faded. The year sits in the middle with the years before and after faded beside it; click one (or press the left or right arrow key) to switch. The route always runs left to right; on phones it scrolls sideways. Clicking a month opens `insights-month.html?month=YYYY-MM`, with four cards: traffic, sectors, model accuracy and recommendations. Each has a few figures with the change from last month, and one chart. All numbers are sample data until the API exists (see [docs/API.md](docs/API.md)).
+`insights.html` shows the year as a dotted flight route drawn straight on the page, with twelve waypoints, one per month. A bigger waypoint means more flights per day that month, the orange plane marks the latest month, and months that haven't happened yet are faded. The year is chosen on a dial: the years sit on a half-circle above the route, and you drag, swipe or scroll sideways (or use the arrow keys, or click a year) to turn it; when you let go it snaps the nearest year under the red marker. The route always runs left to right; on phones it scrolls sideways. Clicking a month opens `insights-month.html?month=YYYY-MM`, with four cards: traffic, sectors, model accuracy and recommendations. Each has a few figures with the change from last month, and one chart. All numbers are sample data until the API exists (see [docs/API.md](docs/API.md)).
 
 ## Review mode
 

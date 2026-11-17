@@ -8,10 +8,8 @@
 //   - Months with data are links to insights-month.html?month=YYYY-MM.
 //     Months that haven't happened yet are faded and can't be clicked.
 //   - The orange plane (the map's plane shape) sits on the latest month.
-//   - The year: the big number in the middle, with the years before and
-//     after faded beside it. Click one, or press the left / right arrow keys,
-//     to switch year. The address keeps ?year=YYYY, so the month pages can
-//     link back to the right year.
+//   - The year is chosen on the dial above the route (js/insights/year-dial.js).
+//     The address keeps ?year=YYYY, so the month pages can link back to it.
 //   - The route always runs left to right. On narrow screens it keeps its
 //     size and the box scrolls sideways (see .route-box in insights.css).
 // =====================================================================
@@ -105,43 +103,38 @@
   }
   function hideTip() { tip.hidden = true; }
 
-  // ---------- Year ----------
-  let years = [];
-  function showYear(y, push) {
-    return FIRCastInsights.getYear(y).then(data => {
-      year = data;
-      $('year-title').textContent = data.year;
-      document.title = `Insights ${data.year} · FIRCast`;
-      const i = years.indexOf(data.year);
-      sideYear($('year-prev'), years[i - 1]);
-      sideYear($('year-next'), years[i + 1]);
-      $('route-area').classList.remove('is-switching');
-      render();
-      if (push) history.replaceState(null, '', `?year=${data.year}`);
-    });
+  // ---------- Year (the dial in js/insights/year-dial.js) ----------
+  let years = [], dial = null, wanted = null;
+  const cache = new Map();                                             // years already loaded
+  const load = y => cache.has(y) ? Promise.resolve(cache.get(y))
+    : FIRCastInsights.getYear(y).then(d => { cache.set(y, d); return d; });
+
+  function showYear(data) {
+    year = data;
+    $('year-title').textContent = `Insights ${data.year}`;
+    document.title = `Insights ${data.year} · FIRCast`;
+    $('route-area').classList.remove('is-switching');
+    render();
+    history.replaceState(null, '', `?year=${data.year}`);
   }
-  // A neighbouring year: shown faded if it has data, hidden (but keeping its space) if not.
-  function sideYear(btn, y) {
-    btn.textContent = y || '';
-    btn.dataset.year = y || '';
-    btn.classList.toggle('is-empty', !y);
-    btn.tabIndex = y ? 0 : -1;
-    btn.setAttribute('aria-label', y ? `Show ${y}` : '');
-    btn.setAttribute('aria-hidden', String(!y));
-  }
+  // The dial moved a new year into the centre: fade the route out, load, fade in.
+  // While someone spins past several years, only the last one asked for is shown.
   function switchTo(y) {
-    if (!y || y === year.year) return;
-    $('route-area').classList.add('is-switching');                   // quick fade while the new year loads
+    if (year && y === year.year) return;
+    wanted = y;
+    $('route-area').classList.add('is-switching');
     hideTip();
-    setTimeout(() => showYear(y, true).catch(fail), 160);
+    setTimeout(() => {
+      if (wanted !== y) return;
+      load(y).then(d => { if (wanted === y) showYear(d); }).catch(fail);
+    }, 160);
   }
-  $('year-prev').addEventListener('click', e => switchTo(Number(e.currentTarget.dataset.year)));
-  $('year-next').addEventListener('click', e => switchTo(Number(e.currentTarget.dataset.year)));
-  document.addEventListener('keydown', e => {                          // left / right arrows change year
-    if (!year || e.altKey || e.ctrlKey || e.metaKey) return;
-    const i = years.indexOf(year.year);
-    if (e.key === 'ArrowLeft') switchTo(years[i - 1]);
-    if (e.key === 'ArrowRight') switchTo(years[i + 1]);
+  // Left / right arrow keys anywhere on the page turn the dial too.
+  document.addEventListener('keydown', e => {
+    if (!dial || e.altKey || e.ctrlKey || e.metaKey || e.target === $('year-dial')) return;
+    const i = years.indexOf(dial.current());
+    if (e.key === 'ArrowLeft' && i > 0) dial.go(years[i - 1]);
+    if (e.key === 'ArrowRight' && i < years.length - 1) dial.go(years[i + 1]);
   });
 
   function fail(err) {
@@ -153,6 +146,8 @@
   FIRCastInsights.getYears().then(list => {
     years = list.slice().sort((a, b) => a - b);
     const asked = Number(new URLSearchParams(location.search).get('year'));
-    return showYear(years.includes(asked) ? asked : years[years.length - 1], false);
+    const first = years.includes(asked) ? asked : years[years.length - 1];
+    dial = YearDial($('year-dial'), years, first, switchTo);
+    return load(first).then(showYear);
   }).catch(fail);
 })();
