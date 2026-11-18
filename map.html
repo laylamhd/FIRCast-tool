@@ -100,7 +100,7 @@
             <dt>Squawk</dt>       <dd id="pp-sqk">0000</dd>
             <dt>Sector</dt>       <dd id="pp-sector">S1</dd>
             <dt>Next waypoint</dt><dd id="pp-next">—</dd>
-            <dt>Airway</dt>       <dd id="pp-airway">—</dd>
+            <dt>Route</dt>        <dd id="pp-airway">—</dd>
           </dl>
         </aside>
       </div>
@@ -142,21 +142,7 @@
         <div class="panel-scroll">
           <p class="map-title">UAE region · 7 sectors</p>
 
-          <!-- 1. Search: a route (B540) or a waypoint (IVOXI) (js/map/search.js) -->
-          <section class="panel-section" aria-labelledby="h-search">
-            <h2 class="panel-h" id="h-search">Find a route or waypoint</h2>
-            <form class="search" id="search-form" role="search">
-              <label class="sr-only" for="search-input">Route or waypoint name</label>
-              <input id="search-input" list="search-list" placeholder="B540 or IVOXI" autocomplete="off" spellcheck="false">
-              <datalist id="search-list"></datalist>
-              <button type="submit" class="btn btn-sm">Find</button>
-            </form>
-            <p class="search-msg" id="search-msg" aria-live="polite">Type a route or a waypoint.</p>
-            <!-- 2. The result: what was found, from the eAIP data -->
-            <div class="search-result" id="search-result" hidden></div>
-          </section>
-
-          <!-- 3. Forecast: one line until opened, then the forecast chart (js/map/forecast-panel.js) -->
+          <!-- 1. Forecast: one line until opened, then the forecast chart (js/map/forecast-panel.js) -->
           <section class="panel-section">
             <details class="forecast-panel" id="forecast-panel">
               <summary><span class="panel-h">Forecast</span><span class="fp-line" id="fp-line"></span></summary>
@@ -176,7 +162,7 @@
             </details>
           </section>
 
-          <!-- 4. Layers: pick a sector and choose what to show. map.js listens for 'change' on this form -->
+          <!-- 2. Layers: pick a sector and choose what to show. map.js listens for 'change' on this form -->
           <section class="panel-section" aria-labelledby="h-layers">
             <h2 class="panel-h" id="h-layers">Layers</h2>
             <form class="layers" id="menu-panel">
@@ -201,7 +187,7 @@
                 </label>
                 <label class="switch-row">
                   <svg width="18" height="18" aria-hidden="true"><line x1="1" y1="15" x2="17" y2="3" stroke="#13233A" stroke-opacity="0.55" stroke-width="1.5"/></svg>
-                  <span>Airways</span><input class="switch" type="checkbox" name="layer" value="airways" checked>
+                  <span>Routes</span><input class="switch" type="checkbox" name="layer" value="airways" checked>
                 </label>
                 <label class="switch-row">
                   <svg width="18" height="18" aria-hidden="true"><path d="M9 3 L15 14 L3 14 Z" fill="#FBF4DB" stroke="#13233A" stroke-width="1.5"/></svg>
@@ -210,6 +196,10 @@
                 <label class="switch-row">
                   <svg width="18" height="18" aria-hidden="true"><rect x="2" y="2" width="14" height="14" rx="3" fill="none" stroke="#13233A" stroke-width="1.5" stroke-dasharray="4 3"/></svg>
                   <span>FIR boundary</span><input class="switch" type="checkbox" name="layer" value="fir" checked>
+                </label>
+                <label class="switch-row">
+                  <svg width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="4" fill="#13233A" stroke="#FBF4DB" stroke-width="2"/></svg>
+                  <span>City names</span><input class="switch" type="checkbox" name="layer" value="cities" checked>
                 </label>
               </fieldset>
             </form>
@@ -220,11 +210,34 @@
             </div>
           </section>
 
-          <!-- 5. Flight level key: each label pinned under its own spot on the bar -->
+          <!-- 3. 3D only: height exaggeration (shown when the 3D view is on) -->
+          <section class="panel-section" id="exag-section" aria-labelledby="h-exag" hidden>
+            <h2 class="panel-h" id="h-exag">Vertical scale</h2>
+            <div class="exag">
+              <label for="exag">Height exaggeration</label>
+              <output id="exag-out" for="exag">8×</output>
+            </div>
+            <input type="range" id="exag" min="1" max="25" step="1" value="8" aria-valuetext="8 times">
+          </section>
+
+          <!-- 4. Flight level key: each label pinned under its own spot on the bar -->
           <section class="panel-section" aria-labelledby="h-fl">
             <h2 class="panel-h" id="h-fl">Flight level</h2>
             <div class="alt-scale"><i class="alt-bar" id="alt-bar"></i><span class="alt-ticks" id="alt-ticks"></span></div>
-            <p class="panel-note">Aircraft colour shows altitude</p>
+          </section>
+
+          <!-- 5. Search (bottom of the panel): a route (B540) or a waypoint (IVOXI) (js/map/search.js) -->
+          <section class="panel-section" aria-labelledby="h-search">
+            <h2 class="panel-h" id="h-search">Find a route or waypoint</h2>
+            <form class="search" id="search-form" role="search">
+              <label class="sr-only" for="search-input">Route or waypoint name</label>
+              <input id="search-input" list="search-list" placeholder="B540 or IVOXI" autocomplete="off" spellcheck="false">
+              <datalist id="search-list"></datalist>
+              <button type="submit" class="btn btn-sm">Find</button>
+            </form>
+            <p class="search-msg" id="search-msg" aria-live="polite"></p>
+            <!-- The result: what was found, from the eAIP data -->
+            <div class="search-result" id="search-result" hidden></div>
           </section>
         </div>
       </aside>

@@ -95,7 +95,7 @@
     FIRMap.clearFound();
     card.hidden = true; card.innerHTML = '';
     input.value = '';
-    msg.textContent = 'Type a route or a waypoint.';
+    msg.textContent = '';
     input.focus();
   }
 

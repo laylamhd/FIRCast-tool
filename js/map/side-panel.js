@@ -10,6 +10,7 @@
 //     under it. Open by default on wide screens, closed on phones.
 //   - in review mode the panel steps aside: the two maps need the full width.
 //   - the + / − buttons at the top left zoom the map (2D and 3D).
+//   - the 3D height exaggeration slider in the panel.
 // Other scripts hear about the panel through a 'fircast:panel' event.
 // =====================================================================
 
@@ -44,6 +45,17 @@
   // + / − zoom buttons (the keyboard's + and − keys still work on the map too)
   $('zoom-in').addEventListener('click', () => FIRMap.zoom(1.5));
   $('zoom-out').addEventListener('click', () => FIRMap.zoom(1 / 1.5));
+
+  // 3D height exaggeration slider (its section only shows in the 3D view)
+  const exag = $('exag'), exagOut = $('exag-out');
+  exag.addEventListener('input', () => {
+    const k = Number(exag.value);
+    FIRMap.setExaggeration(k);
+    exagOut.textContent = `${k}×`;
+    exag.setAttribute('aria-valuetext', `${k} times`);
+    exag.style.setProperty('--fill', `${((k - exag.min) / (exag.max - exag.min)) * 100}%`);   // navy part of the track
+  });
+  exag.dispatchEvent(new Event('input'));
 
   apply(true);
   FIRMap.refit();                                            // frame the FIR in the visible part of the map

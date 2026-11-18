@@ -39,7 +39,7 @@
   const K = Math.cos((24.6 * Math.PI) / 180);   // squeeze longitude so shapes keep proportion at 24.6°N
   const NM_PER_DEG = 60;                         // 1° of latitude = 60 nautical miles
   const FT_PER_NM = 6076.12;
-  const EXAG = 8;                                // 3D only: heights drawn 8x taller so layers are visible
+  let EXAG = 8;                                  // 3D only: heights drawn this many times taller (slider in the side panel)
   const TIME_SCALE = 30;                         // simulated time runs 30x faster than real time
   const altUnits = ft => (ft / FT_PER_NM / NM_PER_DEG) * EXAG;   // feet -> map units (degrees of latitude)
   const nmBetween = ([lon1, lat1], [lon2, lat2]) => Math.hypot((lon2 - lon1) * K, lat2 - lat1) * NM_PER_DEG;
@@ -437,7 +437,36 @@
   });
 
   // layers switched on and off from the dropdown
-  const layers = { traffic: true, airways: true, waypoints: true, fir: true };
+  const layers = { traffic: true, airways: true, waypoints: true, fir: true, cities: true };
+
+  // Cities, for orientation only. Rounded city-centre positions [lon, lat];
+  // `side` puts the name left or right of the dot so neighbours don't collide.
+  const CITIES = [
+    ['Abu Dhabi', 54.37, 24.45, 'r'], ['Dubai', 55.27, 25.20, 'l'], ['Sharjah', 55.42, 25.35, 'r'],
+    ['Ajman', 55.44, 25.41, 'r'], ['Ras Al Khaimah', 55.94, 25.79, 'r'], ['Fujairah', 56.33, 25.12, 'r'],
+    ['Al Ain', 55.76, 24.21, 'r'], ['Doha', 51.53, 25.29, 'r'], ['Manama', 50.59, 26.23, 'r'],
+    ['Muscat', 58.41, 23.59, 'r'], ['Bandar Abbas', 56.27, 27.18, 'r']
+  ];
+  // Ajman sits next to Sharjah: only name it when zoomed in enough to separate them
+  const CITY_MIN_ZOOM = { Ajman: 2.2 };
+  function drawCities() {
+    if (!layers.cities) return;
+    ctx.font = '700 12px Manrope, system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    CITIES.forEach(([name, lon, lat, side]) => {
+      if (CITY_MIN_ZOOM[name] && view.scale < fitScale * CITY_MIN_ZOOM[name]) return;
+      const [x, y] = project(lon, lat);
+      if (x < -60 || y < -20 || x > W + 60 || y > H + 20) return;
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = `rgb(${INK})`; ctx.fill();
+      ctx.strokeStyle = CORN; ctx.lineWidth = 2; ctx.stroke();
+      ctx.textAlign = side === 'l' ? 'right' : 'left';
+      const tx = side === 'l' ? x - 8 : x + 8;
+      ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(251, 244, 219, 0.92)'; ctx.lineWidth = 4;
+      ctx.strokeText(name, tx, y);
+      ctx.fillStyle = `rgb(${INK})`; ctx.fillText(name, tx, y);
+    });
+  }
   let hoveredSector = null, hoveredFlight = null, openFlight = null, selected = null;
   // Review mode (section 12): which sector list to draw, and which ids stay bright.
   let drawnSectors = null, focusIds = null;
@@ -869,6 +898,7 @@
     if (flat) drawAirways();                                   // 2D: on top of the sector colours
     if (flat) drawWaypoints();                                 // 2D: on top, so they stay readable
     drawHaze();
+    drawCities();                                              // city names, 2D and 3D
     drawFlights();
     if (review) { drawSpotlight(); drawChangeLines(); }        // review mode: light on the sectors in question
     else drawFoundLabels();                                    // search result names
@@ -1100,6 +1130,7 @@
     $('view-2d').setAttribute('aria-pressed', String(mode === '2d'));
     $('view-3d').setAttribute('aria-pressed', String(mode === '3d'));
     $('hint-3d').hidden = mode !== '3d';
+    $('exag-section').hidden = mode !== '3d';                  // height slider only matters in 3D
     flyTo(selected ? (mode === '3d' ? VIEW_3D : VIEW_2D) : defaultView(), 900);
     if (selected) frameSelected(900);
   }
@@ -1268,6 +1299,7 @@
     mode = '2d';
     $('view-2d').setAttribute('aria-pressed', 'true'); $('view-3d').setAttribute('aria-pressed', 'false');
     $('hint-3d').hidden = true;
+    $('exag-section').hidden = true;
     document.querySelector('.map-card').classList.add('is-reviewing');
     proposedCanvas.closest('.pane').hidden = false;
     resize();                                                  // the main canvas is now half as wide
@@ -1317,6 +1349,7 @@
     sectorIds: () => sectors.map(s => s.id),
     enterReview, showRecommendation, exitReview, applyConfiguration,
     highlight: id => { panelSectorId = id; },                  // outline one sector (forecast panel)
+    setExaggeration: k => { EXAG = Math.max(1, Math.min(30, k)); },   // 3D height slider
     // the side panel covers `px` of the right edge; the map recentres in the rest
     setInset: (px, now = false) => { insetTarget = Math.max(0, px); if (now) insetR = insetTarget; },
     // jump to the starting view for the visible area (used once the panel's width is known)
