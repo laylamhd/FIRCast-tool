@@ -232,10 +232,19 @@
 
       <!-- Review panel (review mode only): why the model recommends this, then accept or override -->
       <div class="review-panel" id="review-panel" hidden>
+        <!-- Why: the reason and two key figures (left), the forecast chart in its own white card (middle) -->
         <div class="why">
-          <p class="why-text" id="why-text"></p>
-          <svg class="why-chart" id="why-chart" viewBox="0 0 560 150" role="img" aria-labelledby="why-text"></svg>
+          <div class="why-col">
+            <p class="why-kicker" id="why-kicker">Why</p>
+            <p class="why-text" id="why-text"></p>
+            <div class="why-facts" id="why-facts"></div>
+          </div>
+          <figure class="why-card">
+            <figcaption><span>Predicted complexity · next 60 min</span><span class="why-key" id="why-key"></span></figcaption>
+            <svg class="why-chart" id="why-chart" role="img" aria-labelledby="why-text"></svg>
+          </figure>
         </div>
+        <!-- Decision (right): Accept / Override stacked; the override form widens this column -->
         <div class="decide" id="decide">
           <div class="decide-buttons">
             <button type="button" class="btn btn-sm btn-ghost" id="rv-override">Override</button>

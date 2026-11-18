@@ -100,8 +100,8 @@
   function drawChart(rec) {
     const svg = $('why-chart');
     // draw at the chart's real width, so text stays 11px on phones too
-    const W = Math.round(Math.max(300, Math.min(640, svg.clientWidth || 560))), H = 150;
-    const L = 34, R = 56, T = 14, B = 24;                                   // R leaves room for the line labels
+    const W = Math.round(Math.max(300, Math.min(1400, svg.clientWidth || 560))), H = 170;
+    const L = 36, R = 14, T = 14, B = 24;                                   // the key is in the card's caption
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     const { high, low } = run.thresholds;
     const series = rec.sectors.map(id => ({ id, v: rec.forecast[id] || [] }));
@@ -128,16 +128,29 @@
     series.forEach((s, k) => {
       const c = lineColours[k % 2], last = s.v.length - 1;
       out += `<polyline points="${s.v.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/>`;
-      out += `<circle cx="${x(last)}" cy="${y(s.v[last])}" r="3.5" fill="${c}"/>`;
-      // sector name just right of the line's end (nudged apart when there are two)
-      const dy = series.length > 1 ? (k === 0 ? 0 : 12) * (s.v[last] >= series[0].v[last] ? -1 : 1) : 0;
-      out += `<text x="${x(last) + 8}" y="${y(s.v[last]) + 4 + dy}" style="fill:${c}">${s.id}</text>`;
+      out += `<circle cx="${x(last)}" cy="${y(s.v[last])}" r="4" fill="${c}" stroke="#fff" stroke-width="2"/>`;
     });
-    for (let i = 0; i < n; i += 3) {                                         // time axis every 15 min
+    // key in the card's caption: one short line per sector
+    $('why-key').innerHTML = series.map((s, k) => `<span><i style="background:${lineColours[k % 2]}"></i>${s.id}</span>`).join('');
+    const every = W < 460 ? 6 : 3;                                          // time axis every 15 min (30 on narrow charts)
+    for (let i = 0; i < n; i += every) {
       const anchor = i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle';
       out += `<text x="${x(i)}" y="${H - 6}" text-anchor="${anchor}">${i === 0 ? 'Now' : '+' + i * run.step_min + ' min'}</text>`;
     }
     svg.innerHTML = out;
+  }
+
+  // Two quick figures beside the reason.
+  function facts(rec) {
+    const { high, low } = run.thresholds;
+    const all = rec.sectors.flatMap(id => rec.forecast[id] || []);
+    if (rec.action === 'split') {
+      const s = rec.forecast[rec.sectors[0]] || [];
+      const first = s.findIndex(v => v >= high);
+      const at = first < 0 ? '—' : fmtTime(new Date(new Date(run.generated_at).getTime() + first * run.step_min * 60000));
+      return [['Crosses high limit', first < 0 ? '—' : `${at} UTC`], ['Peak', Math.max(...s).toFixed(2)]];
+    }
+    return [['Highest', Math.max(...all).toFixed(2)], ['Low limit', low.toFixed(2)]];
   }
 
   // ---------- Showing one recommendation ----------
@@ -157,7 +170,9 @@
     $('cap-after').innerHTML =
       `<span class="pane-tag is-after">After ${split ? 'split' : 'merge'}</span><span class="pane-what">${rec.proposed.map(p => p.id).join(' + ')} · ${b} ${plural(b, 'controller', 'controllers')}</span>` +
       (split ? '<span class="pane-key"><i class="key-solid"></i>New border</span>' : '');
+    $('why-kicker').textContent = rec.action === 'split' ? 'Why split' : 'Why merge';
     $('why-text').textContent = explain(rec);
+    $('why-facts').innerHTML = facts(rec).map(([k, v]) => `<div class="fact"><p>${k}</p><p>${v}</p></div>`).join('');
     drawChart(rec);
     closeOverride();
   }
@@ -232,7 +247,9 @@
 
   // ---------- Override form ----------
   function openOverride() {
+    $('review-panel').classList.add('is-overriding');                 // widen the decision column for the form
     $('override-form').hidden = false;
+    drawChart(queue[current]);                                         // the chart is narrower now: redraw at its new size
     document.querySelector('#decide > .decide-buttons').hidden = true;
     $('override-form').querySelector('input').focus();
   }
@@ -240,7 +257,9 @@
     const form = $('override-form');
     form.reset();
     form.hidden = true;
+    $('review-panel').classList.remove('is-overriding');
     $('override-error').hidden = true;
+    if (reviewing && queue[current]) drawChart(queue[current]);
     document.querySelector('#decide > .decide-buttons').hidden = false;
   }
   $('override-form').addEventListener('change', () => { $('override-error').hidden = true; });
@@ -255,6 +274,7 @@
 
   // ---------- Buttons and keys ----------
   $('review-btn').addEventListener('click', () => start());
+  window.addEventListener('resize', () => { if (reviewing && queue[current] && !$('decide').hidden) drawChart(queue[current]); });
   $('review-exit').addEventListener('click', exit);
   $('review-back').addEventListener('click', exit);
   $('rv-accept').addEventListener('click', () => decide('accepted'));

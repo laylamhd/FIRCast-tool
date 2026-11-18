@@ -379,18 +379,39 @@ button.btn { border: 0; cursor: pointer; font-family: var(--font-ui); }
 .pane-key i { display: inline-block; width: 26px; height: 0; border-top: 4px solid var(--spicy-orange); border-radius: 2px; }
 .pane-key .key-dashed { border-top-style: dashed; }
 
-/* Panel under the maps: the reason + forecast chart, then the decision. */
+/* Panel under the maps, three columns: the reason and two figures | the chart
+   in its own white card | Accept / Override stacked. */
 .review-panel {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: end;
+  display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 20px; align-items: stretch;
 }
+.review-panel.is-overriding { grid-template-columns: minmax(0, 1fr) minmax(320px, 440px); }
 .review-panel[hidden] { display: none; }
-.why { display: grid; gap: 8px; }
+.why { display: grid; grid-template-columns: minmax(220px, 320px) minmax(0, 1fr); gap: 20px; align-items: stretch; }
 .why[hidden] { display: none; }
-.why-text { font-size: 15px; line-height: 22px; font-weight: 600; max-width: 62ch; }
-.why-chart { width: 100%; max-width: 640px; height: auto; display: block; }
+.why-col { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+.why-kicker { font-size: 11px; line-height: 16px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.why-text { font: 800 19px/26px var(--font-display); font-variation-settings: var(--display-opsz); letter-spacing: -0.01em; }
+.why-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fact { background: rgba(19, 35, 58, 0.06); border-radius: 12px; padding: 8px 12px; }
+.fact p:first-child { font-size: 11px; line-height: 16px; font-weight: 700; color: var(--muted); }
+.fact p:last-child { font: 800 20px/26px var(--font-display); font-variation-settings: var(--display-opsz); font-variant-numeric: tabular-nums; }
+/* the chart sits on its own white card, raised off the cream panel */
+.why-card {
+  margin: 0; min-width: 0; padding: 12px 14px 8px;
+  background: #fff; border-radius: 16px;
+  border: 1px solid rgba(19, 35, 58, 0.1);
+  box-shadow: 0 1px 0 rgba(19, 35, 58, 0.06), 0 14px 28px -20px rgba(19, 35, 58, 0.6);
+}
+.why-card figcaption { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; font-weight: 800; margin-bottom: 4px; }
+.why-key { display: inline-flex; gap: 12px; font-weight: 700; color: var(--muted); }
+.why-key span { display: inline-flex; align-items: center; gap: 6px; }
+.why-key i { width: 14px; height: 3px; border-radius: 2px; }
+.why-chart { width: 100%; height: auto; display: block; }
 .why-chart text { font-family: var(--font-ui); font-size: 11px; font-weight: 600; fill: var(--muted); }
-.decide { display: grid; gap: 12px; justify-items: end; }
+.decide { display: flex; flex-direction: column; justify-content: center; gap: 12px; }
 .decide[hidden] { display: none; }
+.decide > .decide-buttons { flex-direction: column-reverse; gap: 10px; }
+.decide > .decide-buttons .btn { width: 100%; height: 44px; justify-content: center; font-size: 15px; }
 .decide-buttons { display: flex; gap: 8px; }
 .decide-buttons[hidden] { display: none; }
 .override { display: grid; gap: 8px; width: min(440px, 100%); }
@@ -421,9 +442,8 @@ button.btn { border: 0; cursor: pointer; font-family: var(--font-ui); }
 @media (max-width: 900px) {
   .is-reviewing .map-wrap { grid-template-columns: 1fr; gap: 14px; }
   .is-reviewing .map-canvas { height: 40vh; }
-  .review-panel { grid-template-columns: 1fr; }
-  .decide { justify-items: stretch; }
-  .decide-buttons { justify-content: flex-end; }
+  .review-panel, .review-panel.is-overriding, .why { grid-template-columns: 1fr; }
+  .decide > .decide-buttons { flex-direction: row-reverse; }
 }
 @media (prefers-reduced-motion: reduce) {
   .review-btn { transition: none; }
@@ -547,7 +567,7 @@ button.btn { border: 0; cursor: pointer; font-family: var(--font-ui); }
 .side-panel {
   position: absolute; z-index: 6; top: 0; right: 0; bottom: 0; width: var(--panel-w);
   background: var(--sweet-corn);
-  box-shadow: -18px 0 40px -28px rgba(19, 35, 58, 0.8);
+  box-shadow: -1px 0 0 rgba(19, 35, 58, 0.18), -18px 0 40px -28px rgba(19, 35, 58, 0.8);
   transform: translateX(100%);
   transition: transform 450ms var(--ease);
 }

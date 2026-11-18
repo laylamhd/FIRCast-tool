@@ -405,6 +405,9 @@
   // =======================================================
   const INK = '19, 35, 58';
   const CORN = '#FBF4DB';
+  // Land is a darker sand than the cream controls and side panel, so those
+  // stand clearly apart from the map (they used to blend into the land).
+  const LAND_COL = '#E6DCC4';
   const SEA = '#BCD3E6';
   const PLANE = new Path2D('M1 0 L0.8 0.09 L0.2 0.11 L-0.15 0.9 L-0.35 0.9 L-0.2 0.11 L-0.65 0.09 L-0.85 0.42 L-1 0.42 L-0.92 0 L-1 -0.42 L-0.85 -0.42 L-0.65 -0.09 L-0.2 -0.11 L-0.35 -0.9 L-0.15 -0.9 L0.2 -0.11 L0.8 -0.09 Z');
 
@@ -470,7 +473,7 @@
     ctx.lineJoin = 'round';
     Object.values(LAND).forEach(rings => rings.forEach(ring => {
       path(ring);
-      ctx.fillStyle = CORN; ctx.fill();
+      ctx.fillStyle = LAND_COL; ctx.fill();
       ctx.strokeStyle = `rgba(${INK}, 0.4)`; ctx.lineWidth = 1; ctx.stroke();
     }));
     if (!flat) {                                               // 3D: cover everything outside the Middle East
@@ -478,7 +481,7 @@
       ctx.beginPath(); ctx.rect(0, 0, W, H);
       box.forEach(([lon, lat], i) => { const [x, y] = project(lon, lat); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
       ctx.closePath();
-      ctx.fillStyle = CORN; ctx.fill('evenodd');
+      ctx.fillStyle = LAND_COL; ctx.fill('evenodd');
       path(box); ctx.strokeStyle = `rgba(${INK}, 0.25)`; ctx.lineWidth = 1; ctx.stroke();
     }
     if (flat) {                                                // grid labels in 2D only
