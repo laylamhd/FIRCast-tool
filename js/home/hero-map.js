@@ -618,8 +618,8 @@
 
   // ---------- 6. Live sector table ----------
   // Plain ruled table. Aircraft are shown as plane icons coloured by the
-  // sector's status. "Occupancy trend" compares the occupancy count (aircraft
-  // inside the sector at the same time, EUROCONTROL's term) now with 10 seconds ago.
+  // sector's status. "Aircraft trend" compares the number of aircraft inside
+  // the sector (EUROCONTROL calls it the occupancy count) now with 10 seconds ago.
   // Not "climbing / descending": those describe an aircraft's altitude, not a count.
   const tbody = document.getElementById('sector-rows');
   const headers = [...document.querySelectorAll('.sector-table thead th')];

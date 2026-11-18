@@ -310,10 +310,14 @@ h1 {
 .sector-table thead button {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 0; border: 0; background: none; cursor: pointer;
-  color: inherit;
+  color: inherit; text-align: left;
   font-family: var(--font-display); font-variation-settings: var(--display-opsz);
   font-size: 17px; line-height: 22px; font-weight: 700; letter-spacing: -0.01em;
 }
+/* a column title with a small second line, e.g. "vs 10 s ago" */
+.sector-table thead button.has-sub { flex-wrap: wrap; row-gap: 0; }
+.sector-table thead th { vertical-align: top; }
+.sector-table thead button small { order: 3; flex-basis: 100%; font: 600 11px/14px var(--font-ui); color: var(--muted); text-align: left; }
 .sector-table thead button::after { content: "↕"; font-family: var(--font-ui); font-size: 12px; opacity: 0.3; }
 .sector-table th[aria-sort="ascending"] button::after  { content: "↑"; opacity: 1; }
 .sector-table th[aria-sort="descending"] button::after { content: "↓"; opacity: 1; }
