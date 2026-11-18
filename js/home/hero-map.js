@@ -618,13 +618,15 @@
 
   // ---------- 6. Live sector table ----------
   // Plain ruled table. Aircraft are shown as plane icons coloured by the
-  // sector's status. "Change" compares the count now with 10 seconds ago.
+  // sector's status. "Occupancy trend" compares the occupancy count (aircraft
+  // inside the sector at the same time, EUROCONTROL's term) now with 10 seconds ago.
+  // Not "climbing / descending": those describe an aircraft's altitude, not a count.
   const tbody = document.getElementById('sector-rows');
   const headers = [...document.querySelectorAll('.sector-table thead th')];
   const TREND = {
-    '1':  ['↗', 'Filling up', 'trend-up'],
-    '0':  ['→', 'Steady', 'trend-flat'],
-    '-1': ['↘', 'Emptying', 'trend-down']
+    '1':  ['↗', 'Increasing', 'trend-up'],
+    '0':  ['→', 'Stable', 'trend-flat'],
+    '-1': ['↘', 'Decreasing', 'trend-down']
   };
   // assumed altitude bands, the same as on the full map (placeholders)
   const BANDS = { S1: 'FL100–FL460', S2: 'FL195–FL460', S3: 'FL195–FL460', S4: 'FL150–FL460',
