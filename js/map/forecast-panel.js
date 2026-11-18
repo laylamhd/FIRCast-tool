@@ -4,8 +4,9 @@
 // Needs: js/map/map.js (window.FIRMap), js/map/recommendations-api.js
 //        (FIRCastAPI), js/map/review.js (window.FIRReview).
 //
-// The forecast panel (option C): a panel docked beside the map that shows
-// what the model predicts for ONE sector over the next hour.
+// The forecast section of the side panel (option C): what the model predicts
+// for ONE sector over the next hour. It is a <details> element: closed it is a
+// single line ("S6 · heading High"); opened it shows the chips and the chart.
 //   - status line: is the model live, when was the last forecast;
 //   - one chip per sector, coloured by the worst zone it is predicted to reach;
 //   - the chosen sector: a one-line summary in words, an action badge
@@ -13,13 +14,16 @@
 // The chart's background is split into three zones, Low / Normal / High,
 // using the model's two limits, so the line can be read without numbers:
 // above High -> split; Low (with a neighbour) -> merge; Normal -> keep.
-// The "Forecast" button in the map header hides or shows the panel.
+// While it is open (and the side panel is showing), the chosen sector gets a
+// strong outline on the map.
 // =====================================================================
 
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const panel = $('forecast-panel'), btn = $('forecast-btn'), body = $('map-body');
+  const panel = $('forecast-panel');                                  // the <details> element
+  let sideOpen = true;                                                 // is the side panel showing? (side-panel.js)
+  const showing = () => panel.open && sideOpen;
   const svg = $('fp-chart');
   const ZONE = {
     high:   { label: 'High',   fill: 'rgba(221, 17, 10, 0.10)',   ink: '#A60D07', dot: '#DD110A' },
@@ -182,8 +186,9 @@
     if (!chosen || !FIRMap.sectorIds().includes(chosen)) chosen = defaultSector();
     renderStatus();
     renderChips();
-    FIRMap.highlight(panel.hidden ? null : chosen);
+    FIRMap.highlight(showing() ? chosen : null);
     const values = forecastOf(chosen);
+    $('fp-line').textContent = values ? `${chosen} · heading ${ZONE[worstZone(values)].label}` : `${chosen} · no forecast yet`;
     $('fp-name').textContent = chosen;
     const rec = pendingFor(chosen);
     const act = $('fp-action');
@@ -217,21 +222,16 @@
   svg.addEventListener('pointerleave', () => { hoverIndex = null; if (run && forecastOf(chosen)) renderChart(forecastOf(chosen), pendingFor(chosen)); });
 
   // ---------- Show / hide ----------
-  function setOpen(open) {
-    panel.hidden = !open;
-    body.classList.toggle('with-panel', open);
-    btn.setAttribute('aria-pressed', String(open));
-    FIRMap.highlight(open ? chosen : null);
-    if (open) render();
-  }
-  btn.addEventListener('click', () => setOpen(panel.hidden));
+  // Opening the section draws the chart (it has no width while closed).
+  panel.addEventListener('toggle', () => render());
+  // The side panel slid in or out.
+  document.addEventListener('fircast:panel', e => { sideOpen = e.detail.open; FIRMap.highlight(showing() ? chosen : null); });
 
   // ---------- Wiring ----------
-  FIRMap.onSectorClick(id => { if (!panel.hidden) choose(id); });
+  FIRMap.onSectorClick(id => { if (sideOpen) { panel.open = true; choose(id); } });   // click a sector: show its forecast
   FIRMap.onConfigChange(() => render());
   document.addEventListener('fircast:review', e => { if (!e.detail.reviewing) render(); });
-  window.addEventListener('resize', () => { if (!panel.hidden) render(); });
+  window.addEventListener('resize', () => { if (showing()) render(); });
   FIRCastAPI.subscribe(next => { if (next) { run = next; render(); } });
   setInterval(renderStatus, 1000);                                     // the "next in N s" countdown
-  setOpen(window.innerWidth > 900);                                     // open by default on wide screens
 })();

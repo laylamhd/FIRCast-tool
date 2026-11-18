@@ -326,6 +326,11 @@
   let anim = null;                                             // camera animation in progress
   let mode = '2d';
 
+  // The side panel slides over the right of the map. insetR is how many px it
+  // covers; the camera centres the map in the part that is still visible.
+  let insetR = 0, insetTarget = 0;
+  const visW = () => Math.max(120, W - insetR);               // visible width
+  const centreX = () => visW() / 2;
   const centreY = () => H / 2 + Math.min(1, view.tilt) * H * 0.08;   // ground sits lower when tilted
   function project(lon, lat, ft = 0) {
     return projectG((lon - view.lon) * K, lat - view.lat, altUnits(ft));
@@ -335,10 +340,10 @@
     const c = Math.cos(view.yaw), s = Math.sin(view.yaw);
     const xr = gx * c - gy * s, yr = gx * s + gy * c;
     const ct = Math.cos(view.tilt), st = Math.sin(view.tilt);
-    return [W / 2 + xr * view.scale, centreY() - (yr * ct + gz * st) * view.scale, yr * st - gz * ct];  // x, y, depth
+    return [centreX() + xr * view.scale, centreY() - (yr * ct + gz * st) * view.scale, yr * st - gz * ct];  // x, y, depth
   }
   function unprojectGround(px, py) {                          // screen -> ground (height 0)
-    const xr = (px - W / 2) / view.scale;
+    const xr = (px - centreX()) / view.scale;
     const yr = -(py - centreY()) / view.scale / Math.max(0.15, Math.cos(view.tilt));
     const c = Math.cos(view.yaw), s = Math.sin(view.yaw);
     return [view.lon + (xr * c + yr * s) / K, view.lat + (-xr * s + yr * c)];
@@ -347,7 +352,7 @@
   // The starting view: the whole FIR with a little margin. Also sets fitScale,
   // the zoom at which the FIR just fits (other zoom limits are relative to it).
   function homeView() {
-    fitScale = Math.min(W / ((HOME.maxLon - HOME.minLon) * K), H / (HOME.maxLat - HOME.minLat));
+    fitScale = Math.min(visW() / ((HOME.maxLon - HOME.minLon) * K), H / (HOME.maxLat - HOME.minLat));
     return { lon: (HOME.minLon + HOME.maxLon) / 2, lat: (HOME.minLat + HOME.maxLat) / 2, scale: fitScale };
   }
   // smallest zoom: the whole Middle East fills the map
@@ -356,7 +361,7 @@
     const flat = view.tilt < 0.02 && Math.abs(view.yaw) < 0.01;
     view.scale = Math.min(fitScale * 14, Math.max(dataScale() * (flat ? 1 : 0.8), view.scale));
     if (flat) {                                                // keep the view's edges inside the data
-      const halfLon = W / 2 / (K * view.scale), halfLat = H / 2 / view.scale;
+      const halfLon = visW() / 2 / (K * view.scale), halfLat = H / 2 / view.scale;
       view.lon = Math.min(DATA.maxLon - halfLon, Math.max(DATA.minLon + halfLon, view.lon));
       view.lat = Math.min(DATA.maxLat - halfLat, Math.max(DATA.minLat + halfLat, view.lat));
     } else {                                                   // 3D: keep the centre inside the data
@@ -500,10 +505,41 @@
     }
   }
 
+  // Search result (js/map/search.js): routes and waypoints to highlight in red.
+  let found = null;                                            // { routes: Set, waypoints: Set, focus: name | null }
   function drawAirways() {                                     // ATS routes: thin lines
-    if (!layers.airways) return;
-    ctx.strokeStyle = `rgba(${INK}, 0.38)`; ctx.lineWidth = 1;
-    AIRWAYS.forEach(a => { path(a.fixes.map(n => WAYPOINTS[n]), 0, false); ctx.stroke(); });
+    const hit = found && !review;                              // search results step aside during review
+    if (!layers.airways && !hit) return;
+    if (layers.airways) {
+      ctx.strokeStyle = `rgba(${INK}, ${hit ? 0.16 : 0.38})`; ctx.lineWidth = 1;   // faded while a result is shown
+      AIRWAYS.forEach(a => { path(a.fixes.map(n => WAYPOINTS[n]), 0, false); ctx.stroke(); });
+    }
+    if (!hit) return;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';             // the found routes: red on a light casing
+    AIRWAYS.filter(a => found.routes.has(a.name)).forEach(a => {
+      path(a.fixes.map(n => WAYPOINTS[n]).filter(Boolean), 0, false);
+      ctx.strokeStyle = 'rgba(251, 244, 219, 0.95)'; ctx.lineWidth = 8; ctx.stroke();
+      ctx.strokeStyle = '#DD110A'; ctx.lineWidth = 4; ctx.stroke();
+    });
+  }
+  // Names of the found waypoints, in small labels (drawn on top of everything else).
+  function drawFoundLabels() {
+    if (!found) return;
+    ctx.font = '700 11px "JetBrains Mono", ui-monospace, monospace';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    found.waypoints.forEach(name => {
+      const p = WAYPOINTS[name];
+      if (!p) return;
+      const [x, y] = project(p[0], p[1]);
+      const isFocus = name === found.focus, r = isFocus ? 8 : 5.5;
+      ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r * 0.92, y + r * 0.66); ctx.lineTo(x - r * 0.92, y + r * 0.66); ctx.closePath();
+      ctx.fillStyle = isFocus ? '#DD110A' : CORN; ctx.fill();
+      ctx.strokeStyle = '#DD110A'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(251, 244, 219, 0.95)'; ctx.lineWidth = 4;
+      ctx.strokeText(name, x + r + 5, y - 6);
+      ctx.fillStyle = `rgb(${INK})`; ctx.fillText(name, x + r + 5, y - 6);
+    });
   }
 
   // Waypoints as small triangles; the clicked one is filled navy.
@@ -810,7 +846,7 @@
     const [nx, ny] = project(view.lon, view.lat + 1);
     const ang = Math.atan2(ny - cy, nx - cx) + Math.PI / 2;
     ctx.save();
-    ctx.translate(W - 34, H - 36);
+    ctx.translate(visW() - 34, H - 36);                       // bottom right of the visible map
     card(-18, -24, 36, 44);
     ctx.rotate(ang);
     ctx.fillStyle = `rgb(${INK})`;
@@ -832,6 +868,7 @@
     drawHaze();
     drawFlights();
     if (review) { drawSpotlight(); drawChangeLines(); }        // review mode: light on the sectors in question
+    else drawFoundLabels();                                    // search result names
     drawWaypointLabel();
     drawOverlays();
   }
@@ -949,7 +986,7 @@
   }
 
   // Zoom by `factor` around screen point (x, y), keeping that point still.
-  function zoomAt(factor, x = W / 2, y = H / 2) {
+  function zoomAt(factor, x = centreX(), y = H / 2) {
     anim = null;
     const [lon0, lat0] = unprojectGround(x, y);               // keep the point under the cursor fixed
     view.scale *= factor; clampView();
@@ -1066,29 +1103,17 @@
   $('view-2d').addEventListener('click', () => setMode('2d'));
   $('view-3d').addEventListener('click', () => setMode('3d'));
 
-  // ---- Dropdown: sector + layers ----
-  const menuBtn = $('menu-btn'), menuPanel = $('menu-panel');
-  function setMenu(open) {
-    menuPanel.hidden = !open;
-    menuBtn.setAttribute('aria-expanded', String(open));
-  }
-  // The stack button opens and closes the sector/layers menu.
-  menuBtn.addEventListener('click', () => setMenu(menuPanel.hidden));
-  document.addEventListener('pointerdown', e => {              // click outside closes it
-    if (!menuPanel.hidden && !$('menu').contains(e.target)) setMenu(false);
-  });
-  // Escape closes the menu first, then the plane panel.
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    if (!menuPanel.hidden) { setMenu(false); menuBtn.focus(); }
-    else closePanel();
-  });
+  // ---- Sector + layers: a form in the side panel (map.html) ----
+  const menuPanel = $('menu-panel');
+  function setMenu() { /* the old dropdown is now always open inside the side panel */ }
+  // Escape closes the plane panel.
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
 
   // Fly the camera so the selected sector fills most of the map.
   function frameSelected(ms = 800) {
     const b = selected.bounds;
     const fit = mode === '3d' ? 0.42 : 0.6;                    // 3D needs room for the block's height
-    const scale = Math.min((W * fit) / ((b.maxLon - b.minLon) * K), (H * fit) / (b.maxLat - b.minLat));
+    const scale = Math.min((visW() * fit) / ((b.maxLon - b.minLon) * K), (H * fit) / (b.maxLat - b.minLat));
     const target = { lon: (b.minLon + b.maxLon) / 2, lat: (b.minLat + b.maxLat) / 2, scale };
     if (anim) Object.assign(anim.to, target); else flyTo(target, ms);   // merge with a running 2D/3D switch
   }
@@ -1161,7 +1186,7 @@
     if (!polys.length) return;
     const lons = polys.map(p => p[0]), lats = polys.map(p => p[1]);
     const b = { minLon: Math.min(...lons), maxLon: Math.max(...lons), minLat: Math.min(...lats), maxLat: Math.max(...lats) };
-    const scale = Math.min((W * 0.62) / ((b.maxLon - b.minLon) * K), (H * 0.62) / (b.maxLat - b.minLat));
+    const scale = Math.min((visW() * 0.62) / ((b.maxLon - b.minLon) * K), (H * 0.62) / (b.maxLat - b.minLat));
     flyTo({ lon: (b.minLon + b.maxLon) / 2, lat: (b.minLat + b.maxLat) / 2, scale, ...VIEW_2D }, ms);
   }
 
@@ -1289,6 +1314,28 @@
     sectorIds: () => sectors.map(s => s.id),
     enterReview, showRecommendation, exitReview, applyConfiguration,
     highlight: id => { panelSectorId = id; },                  // outline one sector (forecast panel)
+    // the side panel covers `px` of the right edge; the map recentres in the rest
+    setInset: (px, now = false) => { insetTarget = Math.max(0, px); if (now) insetR = insetTarget; },
+    // jump to the starting view for the visible area (used once the panel's width is known)
+    refit: () => { Object.assign(view, defaultView()); clampView(); },
+    // + / − buttons: a smooth zoom around the centre of the visible map
+    zoom: factor => {
+      const scale = Math.min(fitScale * 14, Math.max(dataScale() * 0.8, view.scale * factor));
+      flyTo({ scale }, 260);
+    },
+    // search (js/map/search.js): highlight routes / waypoints and frame them
+    showFound: (routes, waypoints, focus) => { found = { routes: new Set(routes), waypoints: new Set(waypoints), focus: focus || null }; },
+    clearFound: () => { found = null; },
+    waypoint: name => WAYPOINTS[name] || null,
+    routes: () => AIRWAYS,
+    sectorAtLonLat: (lon, lat) => (sectors.find(s => s.contains(lon, lat)) || {}).id || null,
+    frameLonLat: points => {
+      const lons = points.map(p => p[0]), lats = points.map(p => p[1]);
+      const fit = mode === '3d' ? 0.45 : 0.6;
+      const spanLon = Math.max(0.35, Math.max(...lons) - Math.min(...lons)), spanLat = Math.max(0.3, Math.max(...lats) - Math.min(...lats));
+      const scale = Math.min(fitScale * 14, (visW() * fit) / (spanLon * K), (H * fit) / spanLat);
+      flyTo({ lon: (Math.min(...lons) + Math.max(...lons)) / 2, lat: (Math.min(...lats) + Math.max(...lats)) / 2, scale }, 800);
+    },
     onSectorClick: fn => { sectorClickHandler = fn; },         // a sector on the map was clicked
     onConfigChange: fn => { configListeners.push(fn); }        // sectors were split or merged
   };
@@ -1305,6 +1352,10 @@
       const target = mode === '3d' && (!selected || s === selected) ? 1 : 0;
       s.rise = reduceMotion ? target : s.rise + (target - s.rise) * Math.min(1, dt * 5);
     });
+    if (insetR !== insetTarget) {                              // the side panel is sliding: follow it
+      insetR = reduceMotion ? insetTarget : insetR + (insetTarget - insetR) * Math.min(1, dt * 9);
+      if (Math.abs(insetTarget - insetR) < 0.5) insetR = insetTarget;
+    }
     runAnim(now);
     updateHover();
     draw();

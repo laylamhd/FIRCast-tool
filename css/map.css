@@ -10,33 +10,13 @@ a:focus-visible, button:focus-visible, canvas:focus-visible {
   outline: 2px solid var(--ink); outline-offset: 3px;
 }
 
-/* ---- Page ---- */
-main { position: relative; z-index: 1; padding: 104px 16px 48px; }   /* above the radar */
-#radar { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-h1 {
-  text-align: center; margin-bottom: 28px;
-  font-family: var(--font-display);
-  font-variation-settings: var(--display-opsz);
-  font-size: 48px; line-height: 48px; font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-/* ---- Map card ---- */
-.map-card {
-  max-width: 1320px; margin: 0 auto;
-  background: var(--sweet-corn);
-  border-radius: 24px;
-  box-shadow: var(--lift);
-  padding: 20px;
-  display: flex; flex-direction: column; gap: 16px;
-}
-/* Header (title, 2D/3D, menu) and footer (legend, speed) rows of the map card. */
-.map-head, .map-foot {
-  display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 12px;
-}
-.map-title { font-size: 14px; line-height: 20px; font-weight: 700; }
-.head-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* ---- Page: the map fills the whole screen ---- */
+body:has(.map-screen) { overflow: hidden; }
+.map-screen { position: fixed; inset: 0; z-index: 1; }
+/* The card is now just the full-screen frame for the map and its controls. */
+.map-card { position: absolute; inset: 0; }
+.map-body { position: absolute; inset: 0; }
+.map-title { font-size: 14px; line-height: 20px; font-weight: 800; }
 
 /* segmented control (2D / 3D) */
 .seg {
@@ -54,41 +34,14 @@ h1 {
 .seg button:hover { color: var(--ink); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--sweet-corn); }
 
-/* ---- Dropdown menu: sector (radio chips) + layers (switches) ---- */
-.menu { position: relative; z-index: 10; }
-.menu-btn {                                /* round "stack" (layers) button */
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; padding: 0;
-  border: 1px solid rgba(19, 35, 58, 0.2); border-radius: 9999px;
-  background: #fff8e8; color: var(--ink);
-  font: 700 14px/1 var(--font-ui);
-  cursor: pointer;
-  transition: border-color 300ms var(--ease);
-}
-.menu-btn:hover { border-color: var(--ink); }
-.menu-btn svg { transition: transform 300ms var(--ease); }
-.menu-btn:hover svg { transform: translateY(-1px); }
-.menu-btn[aria-expanded="true"] { background: var(--ink); color: var(--sweet-corn); border-color: var(--ink); }
-/* The dropdown panel under the stack button. */
-.menu-panel {
-  position: absolute; right: 0; top: calc(100% + 8px);
-  width: min(300px, calc(100vw - 56px));
-  padding: 16px;
-  border-radius: 20px;
-  background: var(--sweet-corn);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: var(--lift);
-  display: flex; flex-direction: column; gap: 16px;
-}
-.menu-panel[hidden] { display: none; }
-.menu-panel:not([hidden]) { animation: menuIn 300ms var(--ease); }
-@keyframes menuIn { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
-.menu-panel fieldset { border: 0; display: flex; flex-direction: column; gap: 4px; }
-/* Small uppercase group titles inside the menu ("Sector", "Show on map"). */
-.menu-panel legend {
-  margin-bottom: 8px;
-  font-size: 12px; line-height: 16px; font-weight: 700;
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+/* ---- Layers (side panel): sector chips + layer switches ---- */
+.layers { display: flex; flex-direction: column; gap: 14px; }
+.layers fieldset { border: 0; display: flex; flex-direction: column; gap: 4px; }
+/* Small uppercase group titles ("Sector", "Show on map"). */
+.layers legend {
+  margin-bottom: 6px;
+  font-size: 11px; line-height: 16px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted);
 }
 .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 /* Sector choice chips (radio buttons hidden inside); the chosen one turns navy. */
@@ -132,10 +85,10 @@ h1 {
 .switch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* ---- Map area and overlays ---- */
-.map-wrap { position: relative; border-radius: 16px; overflow: hidden; }
+.map-wrap { position: absolute; inset: 0; overflow: hidden; }
 .map-canvas {
   display: block; width: 100%;
-  height: max(540px, calc(100vh - 250px));
+  height: 100vh; height: 100dvh;
   cursor: grab;
   touch-action: none;                    /* dragging is handled in JavaScript */
 }
@@ -143,15 +96,14 @@ h1 {
 .map-canvas.on-plane { cursor: pointer; }
 
 .overlay { position: absolute; z-index: 2; }
-/* flight level colour key (in the legend under the map) */
-.legend .alt-key { display: inline-flex; align-items: center; gap: 10px; }
-.alt-key b { font-weight: 600; }
-.legend .alt-scale { display: block; width: 170px; padding-top: 2px; }
-.alt-bar { display: block; height: 8px; border-radius: 9999px; }
-.legend .alt-ticks { display: block; position: relative; height: 14px; margin-top: 2px; font-size: 10px; line-height: 16px; font-weight: 600; color: var(--muted); }
-.legend .alt-ticks span { display: block; position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
-.legend .alt-ticks span:first-child { transform: none; }
-.legend .alt-ticks span:last-child { transform: translateX(-100%); }
+/* Flight level key (side panel): each label pinned under its own spot on the bar,
+   so the labels can never run into each other. */
+.alt-scale { display: block; }
+.alt-bar { display: block; height: 10px; border-radius: 9999px; }
+.alt-ticks { display: block; position: relative; height: 16px; margin-top: 4px; font: 600 11px/16px var(--font-ui); color: var(--muted); }
+.alt-ticks span { display: block; position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.alt-ticks span:first-child { transform: none; }
+.alt-ticks span:last-child { transform: translateX(-100%); }
 /* Small coordinate box (kept for reuse; not shown on the page now). */
 .readout {
   right: 12px; bottom: 12px;
@@ -162,7 +114,7 @@ h1 {
 }
 /* "Drag to rotate" hint shown in 3D. */
 .hint {
-  left: 50%; bottom: 12px; transform: translateX(-50%);
+  left: 50%; bottom: 72px; transform: translateX(-50%);
   padding: 4px 12px; border-radius: 9999px;
   background: var(--ink); color: var(--sweet-corn);
   font-size: 12px; line-height: 18px; font-weight: 600;
@@ -172,7 +124,7 @@ h1 {
 .hint[hidden] { display: block; opacity: 0; pointer-events: none; }
 /* Chip at the top of the map describing the selected sector. */
 .sector-chip {
-  left: 50%; top: 12px; transform: translateX(-50%);
+  left: 50%; top: 84px; transform: translateX(-50%);
   padding: 6px 14px; border-radius: 9999px;
   background: var(--ink); color: var(--sweet-corn);
   font-size: 13px; line-height: 18px; font-weight: 600;
@@ -192,8 +144,8 @@ h1 {
 /* ---- Plane panel: slides in from the right ---- */
 .plane-panel {
   position: absolute; z-index: 4;
-  top: 12px; right: 12px;
-  width: 300px; max-height: calc(100% - 24px); overflow-y: auto;
+  top: 16px; left: 76px;
+  width: 300px; max-height: calc(100% - 110px); overflow-y: auto;
   padding: 16px;
   border-radius: 20px;
   background: rgba(251, 244, 219, 0.95);
@@ -201,7 +153,7 @@ h1 {
   border: 1px solid rgba(255, 255, 255, 0.7);
   box-shadow: var(--lift);
   display: flex; flex-direction: column; gap: 12px;
-  transform: translateX(calc(100% + 24px));
+  transform: translateX(-16px);
   opacity: 0;
   pointer-events: none;
   transition: transform 500ms var(--ease), opacity 300ms var(--ease);
@@ -324,25 +276,18 @@ h1 {
 .legend svg { flex-shrink: 0; }
 
 @media (max-width: 640px) {
-  h1 { font-size: 36px; line-height: 40px; margin-bottom: 20px; }
-  .map-card { padding: 12px; border-radius: 16px; }
-  .map-canvas { height: 64vh; }
   .plane-panel {                         /* phones: panel becomes a bottom sheet */
     top: auto; bottom: 12px; left: 12px; right: 12px; width: auto;
     max-height: 72%;
     transform: translateY(calc(100% + 24px));
     gap: 10px; padding: 14px;
   }
-  .head-controls { width: 100%; }
-  .menu { margin-left: auto; }
-  .legend .alt-scale { width: 190px; }
   .pp-grid { grid-template-columns: auto 1fr auto 1fr; }
   .sector-chip { font-size: 12px; }
-  .hint { bottom: 48px; }
+  .hint { bottom: 72px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .plane-panel, .btn, .nav-link, .seg button, .menu-btn svg, .chip, .switch, .switch::before, .skip, .hint, .pp-bar i { transition: none; }
-  .menu-panel:not([hidden]) { animation: none; }
+  .plane-panel, .btn, .nav-link, .seg button, .chip, .switch, .switch::before, .skip, .hint, .pp-bar i { transition: none; }
 }
 
 /* =====================================================================
@@ -370,8 +315,18 @@ h1 {
   font-size: 13px;
 }
 
-/* While reviewing: no 2D/3D switch, no menu, no review button (review is 2D only). */
-.is-reviewing .seg, .is-reviewing .menu, .is-reviewing .review-btn { display: none; }
+/* While reviewing: the page scrolls, the panel and floating controls step aside,
+   and the review bar, the two maps and the decision panel stack up. */
+.is-reviewing .map-controls, .is-reviewing .review-btn, .is-reviewing .speed-float,
+.is-reviewing .side-panel, .is-reviewing .sector-chip { display: none; }
+.map-card.is-reviewing {
+  overflow-y: auto; padding: 88px 20px 24px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.is-reviewing .map-body { position: relative; inset: auto; }
+.is-reviewing .review-bar, .is-reviewing .review-panel {
+  background: var(--sweet-corn); border-radius: 20px; padding: 14px 18px; box-shadow: var(--lift-small);
+}
 
 /* Bar above the maps: "Recommendation 1 of 2 · Split S6 in 20 min" + Exit. */
 .review-bar {
@@ -397,6 +352,7 @@ button.btn { border: 0; cursor: pointer; font-family: var(--font-ui); }
 .pane[hidden] { display: none; }
 .pane-head { display: none; }
 .is-reviewing .map-wrap {
+  position: relative; inset: auto;
   display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
   overflow: visible; border-radius: 0;
 }
@@ -407,7 +363,7 @@ button.btn { border: 0; cursor: pointer; font-family: var(--font-ui); }
   padding: 0 6px 6px;
   box-shadow: 0 18px 36px -20px rgba(19, 35, 58, 0.7);
 }
-.is-reviewing .map-canvas { height: max(400px, calc(100vh - 470px)); border-radius: 12px; }
+.is-reviewing .map-canvas { height: max(360px, calc(100vh - 430px)); border-radius: 12px; }
 .is-reviewing .pane-head {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   padding: 10px 8px 9px; color: var(--sweet-corn);
@@ -474,37 +430,22 @@ button.btn { border: 0; cursor: pointer; font-family: var(--font-ui); }
 }
 
 /* =====================================================================
-   Forecast panel (js/map/forecast-panel.js)
-   Docked to the right of the map. It pushes the map narrower instead of
-   covering it, and hides with the "Forecast" button in the header.
+   Forecast (js/map/forecast-panel.js): a <details> section of the side panel.
+   Closed: one line. Open: status, sector chips, summary and the chart.
    ===================================================================== */
-.map-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-.map-body.with-panel { grid-template-columns: minmax(0, 1fr) 360px; }
-.is-reviewing .map-body { display: block; }
-.is-reviewing .forecast-panel, .is-reviewing .forecast-btn { display: none; }
-
-/* "Forecast" toggle in the header: outlined when the panel is hidden, navy when shown. */
-.forecast-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 40px; padding: 0 16px 0 14px;
-  border: 0; border-radius: 9999px; cursor: pointer;
-  background: transparent; color: var(--ink);
-  box-shadow: inset 0 0 0 1.5px var(--line);
-  font: 700 14px/1 var(--font-ui);
-  transition: background-color 300ms var(--ease), color 300ms var(--ease), box-shadow 300ms var(--ease);
+.forecast-panel > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  cursor: pointer; list-style: none;
+  padding: 10px 12px; border-radius: 12px; background: rgba(19, 35, 58, 0.06);
 }
-.forecast-btn:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
-.forecast-btn[aria-pressed="true"] { background: var(--ink); color: var(--sweet-corn); box-shadow: none; }
-.forecast-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-
-.forecast-panel {
-  display: flex; flex-direction: column; gap: 14px;
-  min-width: 0; padding: 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.55);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-.forecast-panel[hidden] { display: none; }
+.forecast-panel > summary::-webkit-details-marker { display: none; }
+.forecast-panel > summary:hover { background: rgba(19, 35, 58, 0.1); }
+.forecast-panel > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.forecast-panel > summary .panel-h { margin: 0; }
+.fp-line { font-size: 13px; font-weight: 700; color: var(--ink); }
+.fp-line::after { content: "▾"; margin-left: 8px; color: var(--muted); display: inline-block; transition: transform 200ms var(--ease); }
+.forecast-panel[open] .fp-line::after { transform: rotate(180deg); }
+.forecast-panel[open] { display: flex; flex-direction: column; gap: 12px; }
 
 /* Status line: green dot when live, red when the model stopped answering. */
 .fp-status { display: flex; align-items: center; gap: 8px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--muted); }
@@ -561,8 +502,112 @@ button.btn { border: 0; cursor: pointer; font-family: var(--font-ui); }
 .fp-readout[hidden] { display: none; }
 
 @media (max-width: 900px) {
-  .map-body.with-panel { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .forecast-btn, .fp-chip { transition: none; }
+  .fp-chip { transition: none; }
+}
+
+
+/* =====================================================================
+   Floating controls on the full-screen map
+   ===================================================================== */
+/* top left: zoom in / out, then 2D / 3D */
+.map-controls { position: absolute; z-index: 5; top: 16px; left: 16px; display: flex; flex-direction: column; gap: 10px; }
+.zoom-btns {
+  display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 14px; background: var(--sweet-corn); box-shadow: var(--lift-small);
+}
+.zoom-btns button {
+  display: grid; place-items: center; width: 44px; height: 44px;
+  border: 0; background: transparent; color: var(--ink); cursor: pointer;
+}
+.zoom-btns button + button { border-top: 1px solid var(--line); }
+.zoom-btns button:hover { background: rgba(19, 35, 58, 0.07); }
+.zoom-btns button:active { background: rgba(19, 35, 58, 0.12); }
+.seg.seg-vertical { flex-direction: column; border-radius: 14px; background: var(--sweet-corn); box-shadow: var(--lift-small); padding: 4px; gap: 2px; }
+.seg.seg-vertical button { width: 36px; height: 32px; padding: 0; border-radius: 10px; }
+
+/* top right: Review. It moves left with the side panel so it's never covered. */
+.review-btn { position: absolute; z-index: 5; top: 16px; right: 16px; transition: right 450ms var(--ease), transform 300ms var(--ease); box-shadow: var(--lift-small); }
+.panel-open .review-btn { right: calc(var(--panel-w) + 16px); }
+
+/* bottom, centred in the visible part of the map: simulation speed */
+.speed-float {
+  position: absolute; z-index: 5; bottom: 16px; left: 50%; transform: translateX(-50%);
+  padding: 8px 14px; border-radius: 9999px; background: var(--sweet-corn); box-shadow: var(--lift-small);
+  transition: left 450ms var(--ease);
+}
+.panel-open .speed-float, .panel-open .hint, .panel-open .sector-chip { left: calc((100% - var(--panel-w)) / 2); }
+.hint, .sector-chip { transition: left 450ms var(--ease), opacity 300ms var(--ease); }
+
+/* =====================================================================
+   Side panel: slides over the right of the map (js/map/side-panel.js)
+   ===================================================================== */
+.map-card { --panel-w: 360px; }
+.side-panel {
+  position: absolute; z-index: 6; top: 0; right: 0; bottom: 0; width: var(--panel-w);
+  background: var(--sweet-corn);
+  box-shadow: -18px 0 40px -28px rgba(19, 35, 58, 0.8);
+  transform: translateX(100%);
+  transition: transform 450ms var(--ease);
+}
+.panel-open .side-panel { transform: none; }
+/* the tab on the panel's left edge: always visible, even when the panel is away */
+.panel-tab {
+  position: absolute; top: 50%; left: -34px; transform: translateY(-50%);
+  width: 34px; height: 68px; border: 0; border-radius: 14px 0 0 14px; cursor: pointer;
+  display: grid; place-items: center;
+  background: var(--sweet-corn); color: var(--ink);
+  box-shadow: -10px 0 20px -14px rgba(19, 35, 58, 0.7);
+}
+.panel-tab svg { transform: rotate(180deg); transition: transform 450ms var(--ease); }   /* closed: points left, "pull me out" */
+.panel-open .panel-tab svg { transform: none; }                                        /* open: points right, "push me away" */
+.panel-tab:hover { color: var(--spicy-orange); }
+.panel-scroll { height: 100%; overflow-y: auto; padding: 20px 20px 28px; display: flex; flex-direction: column; gap: 22px; }
+.panel-section { display: flex; flex-direction: column; gap: 8px; }
+.panel-h { font-size: 11px; line-height: 16px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.panel-note { font-size: 12px; font-weight: 600; color: var(--muted); }
+.side-panel .legend { gap: 6px 16px; margin-top: 4px; }
+
+/* ---- Search ---- */
+.search { display: flex; gap: 8px; }
+.search input {
+  flex: 1; min-width: 0; height: 40px; padding: 0 12px;
+  border: 1.5px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink);
+  font: 600 14px var(--font-mono, ui-monospace), monospace; letter-spacing: 0.02em; text-transform: uppercase;
+}
+.search input::placeholder { text-transform: none; color: rgba(43, 69, 102, 0.6); font-family: var(--font-ui); }
+.search input:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.search .btn { height: 40px; }
+.search-msg { font-size: 12px; line-height: 18px; font-weight: 600; color: var(--muted); }
+.search-msg b { color: var(--ink); }
+.sr-suggest { border: 0; padding: 1px 8px; margin: 2px 2px 0 0; border-radius: 9999px; cursor: pointer; background: rgba(19, 35, 58, 0.08); color: var(--ink); font: 700 12px ui-monospace, monospace; }
+.sr-suggest:hover { background: var(--ink); color: var(--sweet-corn); }
+.search-result { background: rgba(19, 35, 58, 0.06); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.search-result[hidden] { display: none; }
+.sr-head { display: flex; align-items: center; justify-content: space-between; }
+.sr-kind { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--spicy-orange); }
+.sr-clear { border: 0; background: none; cursor: pointer; font: 700 12px var(--font-ui); color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.sr-clear:hover { color: var(--ink); }
+.sr-name { font: 800 30px/1 var(--font-display); font-variation-settings: var(--display-opsz); letter-spacing: -0.01em; }
+.sr-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; line-height: 18px; }
+.sr-grid dt { font-weight: 600; color: var(--muted); }
+.sr-grid dd { font-weight: 700; }
+.sr-grid dd.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; }
+.sr-flag { font-family: var(--font-ui); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 9999px; background: rgba(243, 198, 63, 0.4); }
+.sr-points { font: 600 11px/17px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
+.sr-source { font-size: 11px; line-height: 15px; color: var(--muted); }
+
+@media (max-width: 720px) {
+  .map-card { --panel-w: calc(100vw - 36px); }        /* leaves a strip so the tab stays reachable */
+  .panel-scroll { padding-top: 84px; }                 /* below the floating nav bar */
+  .panel-tab { width: 32px; left: -32px; }
+  .map-controls, .review-btn { top: 84px; }            /* below the floating nav bar */
+  .panel-open .review-btn, .panel-open .speed-float { visibility: hidden; }   /* the panel covers the map */
+  .speed-float { bottom: 56px; padding: 6px 12px; }    /* above the scale bar and north arrow */
+  .hint { bottom: 112px; }
+  .plane-panel { left: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .side-panel, .panel-tab svg, .review-btn, .speed-float, .hint, .sector-chip { transition: none; }
 }

@@ -47,7 +47,9 @@ fircast-web/
 │   │   ├── geometry.js        Split / merge sector outlines (for the sample data)
 │   │   ├── recommendations-api.js  The only code that talks to the model's server
 │   │   ├── review.js          Review mode: compare, explain, accept or override
-│   │   └── forecast-panel.js  Hideable panel: one sector's forecast for the next hour
+│   │   ├── forecast-panel.js  Forecast section of the side panel: one sector's next hour
+│   │   ├── search.js          Find a route or waypoint: highlight, zoom, details
+│   │   └── side-panel.js      Slide-over side panel and the + / − zoom buttons
 │   └── insights/
 │       ├── insights-api.js    The only code that fetches monthly statistics
 │       ├── year-dial.js       The year picker: years on a half-circle that snaps
@@ -69,9 +71,16 @@ All colours, fonts, shadows and the main easing curve are CSS custom properties 
 
 For a walk-through of the animations, the background story and the map projection, read [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md).
 
-## Forecast panel
+## Map page layout
 
-The **Forecast** button in the map header shows or hides a panel beside the map. It shows what the model predicts for one sector over the next hour: a sentence in plain words, and a chart whose background is split into Low (merge), Normal (keep) and High (split) zones by the model's two limits. Chips at the top switch sector, and so does clicking a sector on the map; each chip's dot shows the worst zone that sector is heading for. If the sector has a pending recommendation, a Split or Merge badge opens review mode at it. The status line says when the forecast was made and turns red if the model stops answering.
+The map fills the whole screen. Floating on top of it: **+ / −** zoom and the **2D / 3D** switch (top left), **Review** (top right), and the simulation speed (bottom). A **side panel** slides over the right edge; the tab on its left edge hides or shows it, and while it is showing the map recentres in the part still visible. Open by default on wide screens, closed on phones. Everything works in 2D and 3D.
+
+The panel holds, top to bottom:
+
+- **Find a route or waypoint.** Type an ATS route (B540) or a waypoint (IVOXI); suggestions come from our eAIP data. The result is drawn in red, its waypoints are labelled, other airways fade and the map flies to it. The card shows only what the data holds: for a route, start and end, segments, lower and upper limits, one-way or two-way, and the length calculated from the waypoint positions; for a waypoint, its position, the routes through it and the (placeholder) sector it sits in. Magnetic track isn't in our converted data, so it isn't shown.
+- **Forecast.** One line ("S6 · heading High") that opens into the forecast: a sentence in plain words and a chart split into Low (merge), Normal (keep) and High (split) zones. Chips, or clicking a sector on the map, switch sector. A Split or Merge badge opens review mode at that recommendation.
+- **Layers.** Pick one sector, and switch air traffic, airways, waypoints and the FIR boundary on or off.
+- **Flight level key.** Each label is pinned under its own spot on the bar, so labels never overlap.
 
 ## Insights (R&D)
 
