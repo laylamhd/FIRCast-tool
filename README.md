@@ -67,6 +67,10 @@ The layout follows a common convention: one folder per file type, then one file 
 
 Each HTML page loads `css/base.css` first and then its own stylesheet, so page styles can build on the shared tokens. Scripts are loaded at the bottom of `<body>` in this order: data first, then the page's scripts, then `nav.js`. The page scripts expect the data globals (`AIRSPACE_DATA`, `LAND_HOME`, `LAND_REGION`) to exist already, so keep that order if you add files.
 
+### Adding a new page
+
+Every page shares the same navigation bar. Copy the `<nav class="nav">` block from an existing page (set `aria-current="page"` on the new page's own link, and add that link to the nav on every other page), load `css/base.css`, and load `js/shared/nav.js` as the last script. That gives the new page the same behaviour as the others: the bar is fixed at the top and, once you scroll, shrinks to the logo in the top-left corner; scrolling back to the top brings the full bar back. Leave about 88 px of space at the top of the content so the full bar doesn't cover it.
+
 All colours, fonts, shadows and the main easing curve are CSS custom properties defined once in `:root` in `base.css`. Change a colour there and it changes everywhere. Where JavaScript draws on a canvas it uses the same hex values; those are listed at the top of each script.
 
 For a walk-through of the animations, the background story and the map projection, read [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md).

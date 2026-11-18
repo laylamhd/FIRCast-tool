@@ -73,7 +73,7 @@ body {
 
 /* ---- Floating navigation bar ---- */
 .nav {
-  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);   /* sits at the top of the page and scrolls away */
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);   /* stays on screen; shrinks to the logo, top left, once you scroll */
   z-index: 10;
   display: flex; align-items: center; gap: 4px;
   padding: 8px 8px 8px 16px;

@@ -2,11 +2,14 @@
 // FIRCast · js/shared/nav.js
 // Used on: every page.
 //
-// The navigation bar sits at the top of the page (position: absolute, so
-// it scrolls away with the page). This script watches the scroll position
-// and adds the class .is-compact once you scroll down, which base.css uses
-// to shrink the bar to just the logo in the top-left corner. Scrolling back
-// to the top removes the class and the bar grows back.
+// The navigation bar is fixed at the top of the screen. This script watches
+// the scroll position and adds the class .is-compact once you scroll down,
+// which base.css uses to shrink the bar to just the logo, pinned in the
+// top-left corner. Scrolling back to the top removes the class and the bar
+// grows back to full size in the centre.
+//
+// Every page must load this script (last, after its own scripts) and use the
+// same <nav class="nav"> markup, so the behaviour is the same everywhere.
 //
 // Two thresholds (48 px to shrink, 8 px to grow) stop it flickering when the
 // page sits near the top. requestAnimationFrame limits the work to once per
