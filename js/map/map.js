@@ -1019,8 +1019,24 @@
   }
 
   // Zoom by `factor` around screen point (x, y), keeping that point still.
+  // ---- Zooming the map counts as scrolling for the nav bar (js/shared/nav.js) ----
+  // A user zoom (wheel, pinch, keys, + / − buttons) past the starting view shrinks
+  // the bar to the logo; zooming back out to the starting view grows it again.
+  // Fly-to animations (picking a sector, search) never shrink it on their own.
+  let zoomCheck = false, mapZoomed = false;
+  function reportZoom() {
+    if (anim || !(zoomCheck || mapZoomed)) return;
+    zoomCheck = false;
+    const base = defaultView().scale;
+    const next = mapZoomed ? view.scale > base * 1.02 : view.scale > base * 1.08;   // two thresholds, no flicker
+    if (next !== mapZoomed) {
+      mapZoomed = next;
+      document.dispatchEvent(new CustomEvent('fircast:scrolled', { detail: { source: 'map', compact: mapZoomed } }));
+    }
+  }
+
   function zoomAt(factor, x = centreX(), y = H / 2) {
-    anim = null;
+    anim = null; zoomCheck = true;
     const [lon0, lat0] = unprojectGround(x, y);               // keep the point under the cursor fixed
     view.scale *= factor; clampView();
     const [lon1, lat1] = unprojectGround(x, y);
@@ -1357,7 +1373,7 @@
     // + / − buttons: a smooth zoom around the centre of the visible map
     zoom: factor => {
       const scale = Math.min(fitScale * 14, Math.max(dataScale() * 0.8, view.scale * factor));
-      flyTo({ scale }, 260);
+      flyTo({ scale }, 260); zoomCheck = true;
     },
     // search (js/map/search.js): highlight routes / waypoints and frame them
     showFound: (routes, waypoints, focus) => { found = { routes: new Set(routes), waypoints: new Set(waypoints), focus: focus || null }; },
@@ -1393,6 +1409,7 @@
       if (Math.abs(insetTarget - insetR) < 0.5) insetR = insetTarget;
     }
     runAnim(now);
+    reportZoom();
     updateHover();
     draw();
     if (review) drawProposed();

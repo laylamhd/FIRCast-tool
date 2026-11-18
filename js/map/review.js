@@ -196,7 +196,9 @@
     document.querySelector('.why').hidden = false;
     FIRMap.enterReview(queue[0]);
     render();
-    $('rv-accept').focus();
+    // focus Accept without jumping: on a phone the screen opens at the top, on the maps
+    $('rv-accept').focus({ preventScroll: true });
+    document.querySelector('.map-card').scrollTop = 0;
   }
 
   function exit() {
@@ -228,7 +230,8 @@
       current++;
       FIRMap.showRecommendation(queue[current]);
       render();
-      $('rv-accept').focus();
+      $('rv-accept').focus({ preventScroll: true });
+      document.querySelector('.map-card').scrollTop = 0;   // back to the maps for the next one
     } else showSummary();
   }
 

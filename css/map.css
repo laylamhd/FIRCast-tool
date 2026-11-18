@@ -533,6 +533,10 @@ button.btn { border: 0; cursor: pointer; font-family: var(--font-ui); }
    ===================================================================== */
 /* top left: zoom in / out, then 2D / 3D */
 .map-controls { position: absolute; z-index: 5; top: 16px; left: 16px; display: flex; flex-direction: column; gap: 10px; }
+/* when the nav bar shrinks to the logo in this corner, the zoom buttons step down below it */
+.map-controls { transition: top 600ms var(--ease); }
+body:has(.nav.is-compact) .map-controls { top: 88px; }
+@media (prefers-reduced-motion: reduce) { .map-controls { transition: none; } }
 .zoom-btns {
   display: flex; flex-direction: column; overflow: hidden;
   border-radius: 14px; background: var(--sweet-corn); box-shadow: var(--lift-small);
