@@ -2,8 +2,8 @@
    FIRCast · map.css
    Styles for map.html only (load after base.css): page layout, the map
    card, the sector/layer dropdown, overlays on the map (zoom hint, sector
-   chip, tooltip), the plane details panel, the speed slider, the opening
-   air show and the legend. Phone sizes and "reduce motion" are at the end.
+   chip, tooltip), the plane details panel, the speed slider
+   and the legend. Phone sizes and "reduce motion" are at the end.
    ===================================================================== */
 
 a:focus-visible, button:focus-visible, canvas:focus-visible {
@@ -247,24 +247,6 @@ body:has(.map-screen) { overflow: hidden; }
 .speed input[type="range"]:hover::-webkit-slider-thumb  { transform: scale(1.15); }
 .speed input[type="range"]:active::-webkit-slider-thumb { transform: scale(0.95); }
 .speed input[type="range"]:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 9999px; }
-
-/* ---- Opening air show ---- */
-#show {
-  position: fixed; inset: 0; width: 100%; height: 100%;
-  z-index: 15; pointer-events: none;
-}
-/* "Skip intro" button, fixed at the bottom centre during the air show. */
-.skip-show {
-  position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
-  z-index: 16;
-  padding: 8px 16px; border: 0; border-radius: 9999px;
-  background: var(--ink); color: var(--sweet-corn);
-  font: 600 14px/20px var(--font-ui);
-  box-shadow: var(--lift-small);
-  cursor: pointer;
-  animation: skipIn 600ms var(--ease) both 400ms;
-}
-@keyframes skipIn { from { opacity: 0; transform: translate(-50%, 8px); } }
 
 /* ---- Legend ---- */
 .legend {

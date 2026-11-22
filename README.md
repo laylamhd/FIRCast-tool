@@ -43,7 +43,7 @@ fircast-web/
 │   │   ├── problem-timeline.js  Section 3 chart driven by scrolling
 │   │   └── tagline.js         Section 4 words, runway lights and landing plane
 │   ├── map/
-│   │   ├── map.js             The full map: projection, 2D/3D, traffic, controls, air show
+│   │   ├── map.js             The full map: projection, 2D/3D, traffic, controls
 │   │   ├── geometry.js        Split / merge sector outlines (for the sample data)
 │   │   ├── recommendations-api.js  The only code that talks to the model's server
 │   │   ├── review.js          Review mode: compare, explain, accept or override

@@ -104,10 +104,6 @@ The dropdown is a real `<form>`. Radio buttons pick one sector; checkboxes switc
 
 The rings and bearing ticks never change, so they are drawn once to an off-screen canvas. Each frame copies that image and then draws the sweep: a 60° wedge made of thin slices whose opacity drops off behind the leading edge, which gives the fading-trail look. A few echoes brighten as the sweep passes them and then fade.
 
-### The opening air show
-
-On each page load a navy 3D plane flies a curved path with a smoke trail and lands on Dubai International, shrinking to the size of the map's planes as it touches down. It is drawn on its own canvas over the page with `pointer-events: none`, so clicks pass straight through to the map. The plane is a handful of flat panels; each panel's brightness comes from a dot product between its normal and a fixed light direction (`SHOW_LIGHT`), which is the simplest form of 3D shading. "Skip intro" ends it early.
-
 ## Reduced motion
 
-Both pages check `prefers-reduced-motion`. When a visitor has asked their system for less motion, the background story stops moving, the air show is removed, the radar is still, and reveals become simple fades. Please keep this working if you add new animation: give it a calm fallback in the `@media (prefers-reduced-motion: reduce)` block at the end of the CSS file, and check `reduceMotion` in JavaScript.
+Both pages check `prefers-reduced-motion`. When a visitor has asked their system for less motion, the background story stops moving, the radar is still, and reveals become simple fades. Please keep this working if you add new animation: give it a calm fallback in the `@media (prefers-reduced-motion: reduce)` block at the end of the CSS file, and check `reduceMotion` in JavaScript.
